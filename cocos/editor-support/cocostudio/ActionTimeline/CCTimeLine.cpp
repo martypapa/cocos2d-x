@@ -1,5 +1,6 @@
 /****************************************************************************
 Copyright (c) 2013 cocos2d-x.org
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -22,8 +23,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************/
 
-#include "CCTimeLine.h"
-#include "CCActionTimeline.h"
+#include "editor-support/cocostudio/ActionTimeline/CCTimeLine.h"
+#include "editor-support/cocostudio/ActionTimeline/CCActionTimeline.h"
 
 USING_NS_CC;
 
@@ -59,7 +60,7 @@ Timeline::~Timeline()
 
 void Timeline::gotoFrame(int frameIndex)
 {
-    if(_frames.size() == 0)
+    if(_frames.empty())
         return;
 
     binarySearchKeyFrame(frameIndex);
@@ -68,7 +69,7 @@ void Timeline::gotoFrame(int frameIndex)
 
 void Timeline::stepToFrame(int frameIndex)
 {
-    if(_frames.size() == 0)
+    if(_frames.empty())
         return;
 
     updateCurrentKeyFrame(frameIndex);
@@ -158,6 +159,9 @@ void Timeline::binarySearchKeyFrame(unsigned int frameIndex)
             _toIndex = 0;
             
             from = to = _frames.at(length - 1); 
+            if (from->isEnterWhenPassed())
+                needEnterFrame = true;
+
             _currentKeyFrameIndex = _frames.at(length - 1)->getFrameIndex();
             _betweenDuration = 0;
             break;

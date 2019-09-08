@@ -1,5 +1,6 @@
 /****************************************************************************
-Copyright (c) 2013-2015 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -48,38 +49,24 @@ public:
      * @js NA
      * @lua NA
      */
-    virtual ~ComponentContainer();
-    
-    template<typename T>
-    T* getComponent() const
-    {
-        auto typeName = typeid(T).name();
-        auto iter = _components.find(typeName);
-        if (iter != _components.end())
-        {
-            return static_cast<T*>(iter->second);
-        }
-        
-        return nullptr;
-    }
+    ~ComponentContainer();
     
 	/**
      * @js getComponent
      */
-	virtual Component* get(const std::string& name) const;
-    virtual bool add(Component *com);
-    virtual bool remove(const std::string& name);
-    virtual bool remove(Component *com);
-    virtual void removeAll();
-    virtual void visit(float delta);
+	Component* get(const std::string& name) const;
+
+    bool add(Component *com);
+    bool remove(const std::string& name);
+    bool remove(Component *com);
+    void removeAll();
+    void visit(float delta);
     
-    virtual void onEnter();
-    virtual void onExit();
+    void onEnter();
+    void onExit();
     
-    bool isEmpty() const { return _componentMap.empty(); }
-    
+    bool isEmpty() const { return _componentMap.empty(); } 
 private:
-    Map<std::string, Component*> _components;
     std::unordered_map<std::string, Component*> _componentMap;
     Node *_owner;
     
@@ -89,4 +76,4 @@ private:
 NS_CC_END
 
 /// @endcond
-#endif  // __FUNDATION__CCCOMPONENT_H__
+#endif  // __CC_FRAMEWORK_COMCONTAINER_H__

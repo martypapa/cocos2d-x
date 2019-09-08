@@ -1,7 +1,8 @@
 /****************************************************************************
 Copyright (c) 2009      On-Core
 Copyright (c) 2010-2012 cocos2d-x.org
-Copyright (C) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
  
 http://www.cocos2d-x.org
 
@@ -56,7 +57,7 @@ public:
      * @js NA
      * @lua NA
      */
-    virtual ~GridBase(void);
+    virtual ~GridBase();
 
     /**@{
      Init the Grid base.
@@ -74,34 +75,34 @@ public:
     /** @{
     Getter and setter of the active state of the grid.
     */
-    inline bool isActive(void) const { return _active; }
+    bool isActive() const { return _active; }
     void setActive(bool active);
     /**@}*/
 
     /** Get number of times that the grid will be reused. */
-    inline int getReuseGrid(void) const { return _reuseGrid; }
+    int getReuseGrid() const { return _reuseGrid; }
     /** Set number of times that the grid will be reused. */
-    inline void setReuseGrid(int reuseGrid) { _reuseGrid = reuseGrid; }
+    void setReuseGrid(int reuseGrid) { _reuseGrid = reuseGrid; }
 
     /** Size of the grid. */
-    inline const Size& getGridSize(void) const { return _gridSize; }
+    const Size& getGridSize() const { return _gridSize; }
     /**Set the size of the grid.*/
-    inline void setGridSize(const Size& gridSize) { _gridSize = gridSize; }
+    void setGridSize(const Size& gridSize) { _gridSize = gridSize; }
 
     /** Pixels between the grids. */
-    inline const Vec2& getStep(void) const { return _step; }
+    const Vec2& getStep() const { return _step; }
     /**Get the pixels between the grids.*/
-    inline void setStep(const Vec2& step) { _step = step; }
+    void setStep(const Vec2& step) { _step = step; }
 
     /** is texture flipped. */
-    inline bool isTextureFlipped(void) const { return _isTextureFlipped; }
+    bool isTextureFlipped() const { return _isTextureFlipped; }
     /**Set the texture flipped or not.*/
     void setTextureFlipped(bool flipped);
     
     /**@{
      Init and reset the status when render effects by using the grid.
      */
-    void beforeDraw(void);
+    void beforeDraw();
     void afterDraw(Node *target);
     /**@}*/
     
@@ -114,14 +115,14 @@ public:
     /**@}*/
     
     /**Interface used to blit the texture with grid to screen.*/
-    virtual void blit(void);
+    virtual void blit();
     /**Interface, Reuse the grid vertices.*/
-    virtual void reuse(void);
+    virtual void reuse();
     /**Interface, Calculate the vertices used for the blit.*/
-    virtual void calculateVertexPoints(void);
+    virtual void calculateVertexPoints();
     
     /**Change projection to 2D for grabbing.*/
-    void set2DProjection(void);
+    void set2DProjection();
     
     /**
      * @brief Set the effect grid rect.
@@ -132,7 +133,7 @@ public:
      * @brief Get the effect grid rect.
      * @return Return the effect grid rect.
      */
-    inline const Rect& getGridRect() const {return _gridRect;}
+    const Rect& getGridRect() const { return _gridRect; }
 
 protected:
     bool _active;
@@ -171,7 +172,7 @@ public:
      * @js NA
      * @lua NA
      */
-    ~Grid3D(void);
+    ~Grid3D();
 
     /** Returns the vertex at a given position.
      * @js NA

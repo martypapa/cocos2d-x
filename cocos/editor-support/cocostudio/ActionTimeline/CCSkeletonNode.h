@@ -1,5 +1,6 @@
 /****************************************************************************
-Copyright (c) 2015 Chukong Technologies Inc.
+Copyright (c) 2015-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
  
 http://www.cocos2d-x.org
 
@@ -25,12 +26,12 @@ THE SOFTWARE.
 #ifndef __CCSKELETONNODE_H__
 #define  __CCSKELETONNODE_H__
 
-#include "CCTimelineMacro.h"
+#include "editor-support/cocostudio/ActionTimeline/CCTimelineMacro.h"
 #include "renderer/CCRenderer.h"
-#include "cocostudio/CocosStudioExport.h"
+#include "editor-support/cocostudio/CocosStudioExport.h"
 #include "base/CCMap.h"
 
-#include "CCBoneNode.h"
+#include "editor-support/cocostudio/ActionTimeline/CCBoneNode.h"
 
 NS_TIMELINE_BEGIN
 
@@ -68,7 +69,7 @@ public:
     *@param: groupName, key
     *@param: boneSkinNameMap, map <name of bone, name of skin to display which added to bone>
     */
-    void addSkinGroup(std::string groupName, std::map<std::string, std::string> boneSkinNameMap);
+    void addSkinGroup(const std::string& groupName, const std::map<std::string, std::string>& boneSkinNameMap);
 
     cocos2d::Rect getBoundingBox() const override;
 
@@ -111,7 +112,6 @@ private:
     cocos2d::CustomCommand         _batchBoneCommand;
 
     void batchDrawAllSubBones(const cocos2d::Mat4 &transform);
-    void batchSubBone(BoneNode* bone);
 };
 
 NS_TIMELINE_END

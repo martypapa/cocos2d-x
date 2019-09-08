@@ -1,5 +1,6 @@
 /****************************************************************************
-Copyright (c) 2013-2014 Chukong Technologies Inc.
+Copyright (c) 2013-2016 Chukong Technologies Inc.
+Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
 http://www.cocos2d-x.org
 
@@ -58,15 +59,16 @@ bool ComponentContainer::add(Component *com)
     CCASSERT(com->getOwner() == nullptr, "Component already added. It can't be added again");
     do
     {
-        auto typeName = typeid(*com).name();
-        if (_components.find(typeName) != _components.end())
+        auto componentName = com->getName();
+
+        if (_componentMap.find(componentName) != _componentMap.end())
         {
-            CCASSERT(true,"ComponentContainer already have this kind of component");
+            CCASSERT(false, "ComponentContainer already have this kind of component");
             break;
         }
+        _componentMap[componentName] = com;
+        com->retain();
         com->setOwner(_owner);
-        _components.insert(typeName, com);
-        _componentMap[com->getName()] = com;
         com->onAdd();
 
         ret = true;
@@ -74,14 +76,20 @@ bool ComponentContainer::add(Component *com)
     return ret;
 }
 
-bool ComponentContainer::remove(const std::string& name)
+bool ComponentContainer::remove(const std::string& componentName)
 {
     bool ret = false;
     do 
     {        
-        auto iter = _componentMap.find(name);
-        CC_BREAK_IF(iter == _componentMap.end());      
-        remove(iter->second);
+        auto iter = _componentMap.find(componentName);
+        CC_BREAK_IF(iter == _componentMap.end());
+
+        auto component = iter->second;
+        _componentMap.erase(componentName);
+
+        component->onRemove();
+        component->setOwner(nullptr);
+        component->release();
 
         ret = true;
     } while(0);
@@ -91,36 +99,20 @@ bool ComponentContainer::remove(const std::string& name)
 
 bool ComponentContainer::remove(Component *com)
 {
-    bool ret = false;
-    do
-    {
-        auto iter = _components.find(typeid(*com).name());
-        if (iter != _components.end())
-        {
-            _componentMap.erase(com->getName());
-
-            com->onRemove();
-            com->setOwner(nullptr);
-            _components.erase(iter);
-        }
-        
-        ret = true;
-    } while(0);
-
-    return ret;
+    return remove(com->getName());
 }
 
 void ComponentContainer::removeAll()
 {
     if (!_componentMap.empty())
     {
-        for (auto iter = _components.begin(); iter != _components.end(); ++iter)
+        for (auto& iter : _componentMap)
         {
-            iter->second->onRemove();
-            iter->second->setOwner(nullptr);
+            iter.second->onRemove();
+            iter.second->setOwner(nullptr);
+            iter.second->release();
         }
         
-        _components.clear();
         _componentMap.clear();
         _owner->unscheduleUpdate();
     }
@@ -128,13 +120,12 @@ void ComponentContainer::removeAll()
 
 void ComponentContainer::visit(float delta)
 {
-    if (!_components.empty())
+    if (!_componentMap.empty())
     {
         CC_SAFE_RETAIN(_owner);
-        auto iterEnd = _components.end();
-        for (auto iter = _components.begin(); iter != iterEnd; ++iter)
+        for (auto& iter : _componentMap)
         {
-            iter->second->update(delta);
+            iter.second->update(delta);
         }
         CC_SAFE_RELEASE(_owner);
     }
@@ -142,17 +133,17 @@ void ComponentContainer::visit(float delta)
 
 void ComponentContainer::onEnter()
 {
-    for (auto iter = _components.begin(); iter != _components.end(); ++iter)
+    for (auto& iter : _componentMap)
     {
-        iter->second->onEnter();
+        iter.second->onEnter();
     }
 }
 
 void ComponentContainer::onExit()
 {
-    for (auto iter = _components.begin(); iter != _components.end(); ++iter)
+    for (auto& iter : _componentMap)
     {
-        iter->second->onExit();
+        iter.second->onExit();
     }
 }
 

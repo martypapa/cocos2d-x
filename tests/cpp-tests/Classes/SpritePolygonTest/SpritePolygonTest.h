@@ -1,3 +1,27 @@
+/****************************************************************************
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
+ 
+ http://www.cocos2d-x.org
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ 
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+ 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+ ****************************************************************************/
+
 #ifndef __cocos2d_tests__SpritePolygonTest__
 
 #include "../BaseTest.h"
@@ -38,7 +62,7 @@ class SpritePolygonTest1 : public SpritePolygonTestDemo
 public:
     CREATE_FUNC(SpritePolygonTest1);
     SpritePolygonTest1();
-    virtual void initSprites() override;
+    void initSprites() override;
 };
 
 class SpritePolygonTest2 : public SpritePolygonTestDemo
@@ -151,6 +175,46 @@ public:
 protected:
     virtual cocos2d::Sprite* makeSprite() override;
     virtual void initIncrementStats() override;
+};
+
+class SpritePolygonTestNoCrash : public SpritePolygonTestDemo
+{
+public:
+    CREATE_FUNC(SpritePolygonTestNoCrash);
+    SpritePolygonTestNoCrash();
+    virtual void initSprites() override;
+};
+
+class SpritePolygonTestTPIsland : public SpritePolygonTestDemo
+{
+public:
+    CREATE_FUNC(SpritePolygonTestTPIsland);
+    SpritePolygonTestTPIsland();
+    virtual void initSprites() override;
+};
+
+class SpritePolygonTestAutoPolyIsland : public SpritePolygonTestDemo
+{
+public:
+    CREATE_FUNC(SpritePolygonTestAutoPolyIsland);
+    SpritePolygonTestAutoPolyIsland();
+    virtual void initSprites() override;
+};
+
+class SpritePolygonTestFrameAnim : public SpritePolygonTestDemo
+{
+public:
+    CREATE_FUNC(SpritePolygonTestFrameAnim);
+    SpritePolygonTestFrameAnim();
+    virtual void initSprites() override;
+};
+
+class Issue14017Test : public SpritePolygonTestDemo
+{
+public:
+    CREATE_FUNC(Issue14017Test);
+    Issue14017Test();
+    virtual void initSprites() override;
 };
 
 #endif /* defined(__cocos2d_tests__SpritePolygonTest__) */

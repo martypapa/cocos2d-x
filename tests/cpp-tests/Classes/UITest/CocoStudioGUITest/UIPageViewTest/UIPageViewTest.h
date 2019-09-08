@@ -1,5 +1,6 @@
 /****************************************************************************
  Copyright (c) 2013 cocos2d-x.org
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
  
  http://www.cocos2d-x.org
  
@@ -37,11 +38,11 @@ public:
     UIPageViewTest();
     ~UIPageViewTest();
     virtual bool init() override;
-    
-    void pageViewEvent(cocos2d::Ref* sender, cocos2d::ui::PageView::EventType type);
-    
+
+    void pageViewEvent(cocos2d::Ref* sender, cocos2d::ui::PageViewEventType type);
+
 protected:
-    
+
     cocos2d::ui::Text* _displayValueLabel;
 };
 
@@ -56,23 +57,6 @@ public:
     
     void pageViewEvent(cocos2d::Ref* sender, cocos2d::ui::PageView::EventType type);
     void onButtonClicked(cocos2d::Ref* sender, cocos2d::ui::Widget::TouchEventType type);
-protected:
-    
-    cocos2d::ui::Text* _displayValueLabel;
-};
-
-class UIPageViewCustomScrollThreshold : public UIScene
-{
-public:
-    CREATE_FUNC(UIPageViewCustomScrollThreshold);
-
-    UIPageViewCustomScrollThreshold();
-    ~UIPageViewCustomScrollThreshold();
-    virtual bool init() override;
-    
-    void sliderEvent(cocos2d::Ref* sender, cocos2d::ui::Slider::EventType type);
-
-    void pageViewEvent(cocos2d::Ref* sender, cocos2d::ui::PageView::EventType type);
 protected:
     
     cocos2d::ui::Text* _displayValueLabel;
@@ -151,6 +135,36 @@ public:
     ~UIPageViewDisableTouchTest();
     virtual bool init() override;
         
+protected:
+    
+    cocos2d::ui::Text* _displayValueLabel;
+};
+
+class UIPageViewChildSizeTest : public UIScene
+{
+public:
+    CREATE_FUNC(UIPageViewChildSizeTest);
+
+    UIPageViewChildSizeTest();
+    ~UIPageViewChildSizeTest();
+    virtual bool init() override;
+
+    void pageViewEvent(cocos2d::Ref* sender, cocos2d::ui::PageView::EventType type);
+
+protected:
+
+    cocos2d::ui::Text* _displayValueLabel;
+};
+
+class UIPageViewIndicatorTest : public UIScene
+{
+public:
+    CREATE_FUNC(UIPageViewIndicatorTest);
+    
+    UIPageViewIndicatorTest();
+    ~UIPageViewIndicatorTest();
+    virtual bool init() override;
+    
 protected:
     
     cocos2d::ui::Text* _displayValueLabel;

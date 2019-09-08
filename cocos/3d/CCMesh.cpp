@@ -1,5 +1,6 @@
 /****************************************************************************
- Copyright (c) 2014 Chukong Technologies Inc.
+ Copyright (c) 2014-2016 Chukong Technologies Inc.
+ Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
 
  http://www.cocos2d-x.org
 
@@ -46,6 +47,22 @@ NS_CC_BEGIN
 
 // Helpers
 
+//sampler uniform names, only diffuse and normal texture are supported for now
+std::string s_uniformSamplerName[] =
+{
+    "",//NTextureData::Usage::Unknown,
+    "",//NTextureData::Usage::None
+    "",//NTextureData::Usage::Diffuse
+    "",//NTextureData::Usage::Emissive
+    "",//NTextureData::Usage::Ambient
+    "",//NTextureData::Usage::Specular
+    "",//NTextureData::Usage::Shininess
+    "u_normalTex",//NTextureData::Usage::Normal
+    "",//NTextureData::Usage::Bump
+    "",//NTextureData::Usage::Transparency
+    "",//NTextureData::Usage::Reflection
+};
+
 static const char          *s_dirLightUniformColorName = "u_DirLightSourceColor";
 static const char          *s_dirLightUniformDirName = "u_DirLightSourceDirection";
 
@@ -80,7 +97,7 @@ void Mesh::resetLightUniformValues()
     _spotLightUniformColorValues.assign(maxSpotLight, Vec3::ZERO);
     _spotLightUniformPositionValues.assign(maxSpotLight, Vec3::ZERO);
     _spotLightUniformDirValues.assign(maxSpotLight, Vec3::ZERO);
-    _spotLightUniformInnerAngleCosValues.assign(maxSpotLight, 0.0f);
+    _spotLightUniformInnerAngleCosValues.assign(maxSpotLight, 1.0f);
     _spotLightUniformOuterAngleCosValues.assign(maxSpotLight, 0.0f);
     _spotLightUniformRangeInverseValues.assign(maxSpotLight, 0.0f);
 }
@@ -106,23 +123,24 @@ static Texture2D * getDummyTexture()
 
 
 Mesh::Mesh()
-: _texture(nullptr)
-, _skin(nullptr)
+: _skin(nullptr)
 , _visible(true)
 , _isTransparent(false)
+, _force2DQueue(false)
 , _meshIndexData(nullptr)
-, _material(nullptr)
 , _glProgramState(nullptr)
 , _blend(BlendFunc::ALPHA_NON_PREMULTIPLIED)
-, _visibleChanged(nullptr)
 , _blendDirty(true)
-, _force2DQueue(false)
+, _material(nullptr)
+, _texFile("")
 {
     
 }
 Mesh::~Mesh()
 {
-    CC_SAFE_RELEASE(_texture);
+    for (auto &tex : _textures){
+        CC_SAFE_RELEASE(tex.second);
+    }
     CC_SAFE_RELEASE(_skin);
     CC_SAFE_RELEASE(_meshIndexData);
     CC_SAFE_RELEASE(_material);
@@ -164,19 +182,19 @@ Mesh* Mesh::create(const std::vector<float>& positions, const std::vector<float>
     att.type = GL_FLOAT;
     att.attribSizeBytes = att.size * sizeof(float);
     
-    if (positions.size())
+    if (!positions.empty())
     {
         perVertexSizeInFloat += 3;
         att.vertexAttrib = GLProgram::VERTEX_ATTRIB_POSITION;
         attribs.push_back(att);
     }
-    if (normals.size())
+    if (!normals.empty())
     {
         perVertexSizeInFloat += 3;
         att.vertexAttrib = GLProgram::VERTEX_ATTRIB_NORMAL;
         attribs.push_back(att);
     }
-    if (texs.size())
+    if (!texs.empty())
     {
         perVertexSizeInFloat += 2;
         att.vertexAttrib = GLProgram::VERTEX_ATTRIB_TEX_COORD;
@@ -185,8 +203,8 @@ Mesh* Mesh::create(const std::vector<float>& positions, const std::vector<float>
         attribs.push_back(att);
     }
     
-    bool hasNormal = (normals.size() != 0);
-    bool hasTexCoord = (texs.size() != 0);
+    bool hasNormal = (!normals.empty());
+    bool hasTexCoord = (!texs.empty());
     //position, normal, texCoordinate into _vertexs
     size_t vertexNum = positions.size() / 3;
     for(size_t i = 0; i < vertexNum; i++)
@@ -211,13 +229,13 @@ Mesh* Mesh::create(const std::vector<float>& positions, const std::vector<float>
     return create(vertices, perVertexSizeInFloat, indices, attribs);
 }
 
-Mesh* Mesh::create(const std::vector<float>& vertices, int perVertexSizeInFloat, const IndexArray& indices, const std::vector<MeshVertexAttrib>& attribs)
+Mesh* Mesh::create(const std::vector<float>& vertices, int /*perVertexSizeInFloat*/, const IndexArray& indices, const std::vector<MeshVertexAttrib>& attribs)
 {
     MeshData meshdata;
     meshdata.attribs = attribs;
     meshdata.vertex = vertices;
     meshdata.subMeshIndices.push_back(indices);
-    meshdata.subMeshIds.push_back("");
+    meshdata.subMeshIds.emplace_back("");
     auto meshvertexdata = MeshVertexData::create(meshdata);
     auto indexData = meshvertexdata->getMeshIndexDataByIndex(0);
     
@@ -253,11 +271,17 @@ bool Mesh::isVisible() const
 
 void Mesh::setTexture(const std::string& texPath)
 {
+    _texFile = texPath;
     auto tex = Director::getInstance()->getTextureCache()->addImage(texPath);
-    setTexture(tex);
+    setTexture(tex, NTextureData::Usage::Diffuse);
 }
 
 void Mesh::setTexture(Texture2D* tex)
+{
+    setTexture(tex, NTextureData::Usage::Diffuse);
+}
+
+void Mesh::setTexture(Texture2D* tex, NTextureData::Usage usage, bool cacheFileName)
 {
     // Texture must be saved for future use
     // it doesn't matter if the material is already set or not
@@ -265,30 +289,52 @@ void Mesh::setTexture(Texture2D* tex)
     if (tex == nullptr)
         tex = getDummyTexture();
     
-    if (tex != _texture)
-    {
-        CC_SAFE_RETAIN(tex);
-        CC_SAFE_RELEASE(_texture);
-        _texture = tex;
+    CC_SAFE_RETAIN(tex);
+    CC_SAFE_RELEASE(_textures[usage]);
+    _textures[usage] = tex;   
+    
+    if (usage == NTextureData::Usage::Diffuse){
+        if (_material) {
+            auto technique = _material->_currentTechnique;
+            for(auto& pass: technique->_passes)
+            {
+                // FIXME: Ideally it should use glProgramState->setUniformTexture()
+                // and set CC_Texture0 that way. But trying to it, will trigger
+                // another bug
+                pass->setTexture(tex);
+            }
+        }
+        
+        bindMeshCommand();
+        if (cacheFileName)
+            _texFile = tex->getPath();
     }
-
-    if (_material) {
-        auto technique = _material->_currentTechnique;
-        for(auto& pass: technique->_passes)
-        {
-            // FIXME: Ideally it should use glProgramState->setUniformTexture()
-            // and set CC_Texture0 that way. But trying to it, will trigger
-            // another bug
-            pass->setTexture(tex);
+    else if (usage == NTextureData::Usage::Normal) // currently only diffuse and normal are supported
+    {
+        if (_material){
+            auto technique = _material->_currentTechnique;
+            for(auto& pass: technique->_passes)
+            {
+                pass->getGLProgramState()->setUniformTexture(s_uniformSamplerName[(int)usage], tex);
+            }
         }
     }
+}
 
-    bindMeshCommand();
+void Mesh::setTexture(const std::string& texPath, NTextureData::Usage usage)
+{
+    auto tex = Director::getInstance()->getTextureCache()->addImage(texPath);
+    setTexture(tex, usage);
 }
 
 Texture2D* Mesh::getTexture() const
 {
-    return _texture;
+    return _textures.at(NTextureData::Usage::Diffuse);
+}
+
+Texture2D* Mesh::getTexture(NTextureData::Usage usage)
+{
+    return _textures[usage];
 }
 
 void Mesh::setMaterial(Material* material)
@@ -310,6 +356,15 @@ void Mesh::setMaterial(Material* material)
             }
         }
     }
+    // Was the texture set before the GLProgramState ? Set it
+    for(auto& tex : _textures)
+        setTexture(tex.second, tex.first);
+        
+    
+    if (_blendDirty)
+        setBlendFunc(_blend);
+    
+    bindMeshCommand();
 }
 
 Material* Mesh::getMaterial() const
@@ -327,7 +382,6 @@ void Mesh::draw(Renderer* renderer, float globalZOrder, const Mat4& transform, u
     if (isTransparent)
         flags |= Node::FLAGS_RENDER_AS_3D;
 
-
     _meshCommand.init(globalZ,
                       _material,
                       getVertexBuffer(),
@@ -339,9 +393,9 @@ void Mesh::draw(Renderer* renderer, float globalZOrder, const Mat4& transform, u
                       flags);
 
 
-//    if (isTransparent && !forceDepthWrite)
-//        _material->getStateBlock()->setDepthWrite(false);
-//    else
+   if (isTransparent && !forceDepthWrite)
+       _material->getStateBlock()->setDepthWrite(false);
+   else
         _material->getStateBlock()->setDepthWrite(true);
 
 
@@ -362,7 +416,7 @@ void Mesh::draw(Renderer* renderer, float globalZOrder, const Mat4& transform, u
         if (_skin)
             programState->setUniformVec4v("u_matrixPalette", (GLsizei)_skin->getMatrixPaletteSize(), _skin->getMatrixPalette());
 
-        if (scene && scene->getLights().size() > 0)
+        if (scene && !scene->getLights().empty())
             setLightUniforms(pass, scene, color, lightMask);
     }
 
@@ -396,16 +450,9 @@ void Mesh::setGLProgramState(GLProgramState* glProgramState)
 {
     // XXX create dummy texture
     auto material = Material::createWithGLStateProgram(glProgramState);
+    if (_material)
+        material->setStateBlock(_material->getStateBlock());
     setMaterial(material);
-    
-    // Was the texture set before teh GLProgramState ? Set it
-    if (_texture)
-        setTexture(_texture);
-    
-    if (_blendDirty)
-        setBlendFunc(_blend);
-    
-    bindMeshCommand();
 }
 
 GLProgramState* Mesh::getGLProgramState() const
@@ -425,7 +472,7 @@ void Mesh::calculateAABB()
             //get skin root
             Bone3D* root = nullptr;
             Mat4 invBindPose;
-            if (_skin->_skinBones.size())
+            if (!_skin->_skinBones.empty())
             {
                 root = _skin->_skinBones.at(0);
                 while (root) {
