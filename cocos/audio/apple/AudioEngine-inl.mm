@@ -677,7 +677,6 @@ void AudioEngineImpl::update(float dt)
             if (player->_finishCallbak) {
                 auto& audioInfo = AudioEngine::_audioIDInfoMap[audioID];
                 filePath = *audioInfo.filePath;
-                player->setCache(nullptr); // it's safe for player didn't free audio cache
             }
 
             AudioEngine::remove(audioID);
@@ -711,11 +710,6 @@ void AudioEngineImpl::uncache(const std::string &filePath)
 void AudioEngineImpl::uncacheAll()
 {
     _audioCaches.clear();
-    for(auto&& player : _audioPlayers)
-    {
-        // prevent player hold invalid AudioCache* pointer, since all audio caches purged
-        player.second->setCache(nullptr);
-    }
 }
 
 #endif

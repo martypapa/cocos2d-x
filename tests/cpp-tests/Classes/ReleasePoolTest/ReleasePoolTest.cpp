@@ -36,14 +36,14 @@ class TestObject : public Ref
 public:
     TestObject() : _name(""){}
     
-    TestObject(std::string name) : _name(std::move(name))
+    TestObject(std::string name) : _name(name)
     {
         CCLOG("TestObject:%s is created", _name.c_str());
     }
     
     ~TestObject()
     {
-        if (!_name.empty())
+        if (_name.size() > 0)
             CCLOG("TestObject:%s is destroyed", _name.c_str());
     }
     

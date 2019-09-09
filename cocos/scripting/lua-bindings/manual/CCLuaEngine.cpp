@@ -28,7 +28,6 @@
 #include "scripting/lua-bindings/manual/tolua_fix.h"
 
 #include "extensions/GUI/CCControlExtension/CCControl.h"
-#include "scripting/lua-bindings/manual/cocos2d/LuaOpengl.h"
 #include "scripting/lua-bindings/manual/cocos2d/lua_cocos2dx_manual.hpp"
 #include "scripting/lua-bindings/manual/extension/lua_cocos2dx_extension_manual.h"
 #include "scripting/lua-bindings/manual/cocostudio/lua_cocos2dx_coco_studio_manual.hpp"
@@ -43,7 +42,7 @@ NS_CC_BEGIN
 
 LuaEngine* LuaEngine::_defaultEngine = nullptr;
 
-LuaEngine* LuaEngine::getInstance()
+LuaEngine* LuaEngine::getInstance(void)
 {
     if (!_defaultEngine)
     {
@@ -53,13 +52,13 @@ LuaEngine* LuaEngine::getInstance()
     return _defaultEngine;
 }
 
-LuaEngine::~LuaEngine()
+LuaEngine::~LuaEngine(void)
 {
     CC_SAFE_RELEASE(_stack);
     _defaultEngine = nullptr;
 }
 
-bool LuaEngine::init()
+bool LuaEngine::init(void)
 {
     _stack = LuaStack::create();
     _stack->retain();
@@ -511,7 +510,7 @@ int LuaEngine::handleTouchesEvent(void* data)
         return 0;
     
     TouchesScriptData* touchesScriptData = static_cast<TouchesScriptData*>(data);
-    if (NULL == touchesScriptData->nativeObject || touchesScriptData->touches.empty())
+    if (NULL == touchesScriptData->nativeObject || touchesScriptData->touches.size() == 0)
         return 0;
     
     int handler = ScriptHandlerMgr::getInstance()->getObjectHandler((void*)touchesScriptData->nativeObject, ScriptHandlerMgr::HandlerType::TOUCHES);
@@ -687,7 +686,7 @@ int LuaEngine::handleEventTouches(ScriptHandlerMgr::HandlerType type,void* data)
         return 0;
     
     LuaEventTouchesData * touchesData = static_cast<LuaEventTouchesData*>(basicScriptData->value);
-    if (nullptr == touchesData->event || touchesData->touches.empty())
+    if (nullptr == touchesData->event || touchesData->touches.size() == 0)
         return 0;
     
     int handler = ScriptHandlerMgr::getInstance()->getObjectHandler((void*)basicScriptData->nativeObject, type);

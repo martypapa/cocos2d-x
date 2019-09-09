@@ -160,12 +160,6 @@ Application* Application::getInstance()
     return sm_pSharedApplication;
 }
 
-// @deprecated Use getInstance() instead
-Application* Application::sharedApplication()
-{
-    return Application::getInstance();
-}
-
 LanguageType Application::getCurrentLanguage()
 {
     LanguageType ret = LanguageType::ENGLISH;
@@ -319,7 +313,7 @@ void Application::setResourceRootPath(const std::string& rootResDir)
     pFileUtils->setSearchPaths(searchPaths);
 }
 
-const std::string& Application::getResourceRootPath()
+const std::string& Application::getResourceRootPath(void)
 {
     return _resourceRootPath;
 }

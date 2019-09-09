@@ -142,11 +142,6 @@ void UIEditBoxTest::editBoxEditingDidBegin(cocos2d::ui::EditBox* editBox)
     log("editBox %p DidBegin !", editBox);
 }
 
-void UIEditBoxTest::editBoxEditingDidEnd(cocos2d::ui::EditBox* editBox)
-{
-    log("editBox %p DidEnd !", editBox);
-}
-
 void UIEditBoxTest::editBoxEditingDidEndWithAction(cocos2d::ui::EditBox* editBox, cocos2d::ui::EditBoxDelegate::EditBoxEndAction action)
 {
     log("editBox %p DidEnd with action %d!", editBox, action);
@@ -277,11 +272,6 @@ bool UIEditBoxTestToggleVisibility::init()
 void UIEditBoxTestToggleVisibility::editBoxEditingDidBegin(cocos2d::ui::EditBox* editBox)
 {
     log("editBox %p DidBegin !", editBox);
-}
-
-void UIEditBoxTestToggleVisibility::editBoxEditingDidEnd(cocos2d::ui::EditBox* editBox)
-{
-    log("editBox %p DidEnd !", editBox);
 }
 
 void UIEditBoxTestToggleVisibility::editBoxTextChanged(cocos2d::ui::EditBox* editBox, const std::string& text)

@@ -36,17 +36,17 @@ THE SOFTWARE.
 
  */
 #include "2d/CCFastTMXLayer.h"
-#include <cmath>
 #include "2d/CCFastTMXTiledMap.h"
 #include "2d/CCSprite.h"
 #include "2d/CCCamera.h"
 #include "renderer/CCTextureCache.h"
-#include "renderer/CCGLProgramCache.h"
-#include "renderer/ccGLStateCache.h"
 #include "renderer/CCRenderer.h"
-#include "renderer/CCVertexIndexBuffer.h"
+#include "renderer/ccShaders.h"
+#include "renderer/backend/Device.h"
+#include "renderer/backend/Buffer.h"
 #include "base/CCDirector.h"
 #include "base/ccUTF8.h"
+#include "renderer/backend/ProgramState.h"
 
 NS_CC_BEGIN
 namespace experimental {
@@ -101,9 +101,6 @@ bool TMXLayer::initWithTilesetInfo(TMXTilesetInfo *tilesetInfo, TMXLayerInfo *la
     
     this->tileToNodeTransform();
 
-    // shader, and other stuff
-    setGLProgram(GLProgramCache::getInstance()->getGLProgram(GLProgram::SHADER_NAME_POSITION_TEXTURE_COLOR));
-    
     _useAutomaticVertexZ = false;
     _vertexZvalue = 0;
 
@@ -111,20 +108,6 @@ bool TMXLayer::initWithTilesetInfo(TMXTilesetInfo *tilesetInfo, TMXLayerInfo *la
 }
 
 TMXLayer::TMXLayer()
-: _layerName("")
-, _layerSize(Size::ZERO)
-, _mapTileSize(Size::ZERO)
-, _tiles(nullptr)
-, _tileSet(nullptr)
-, _layerOrientation(FAST_TMX_ORIENTATION_ORTHO)
-, _texture(nullptr)
-, _vertexZvalue(0)
-, _useAutomaticVertexZ(false)
-, _quadsDirty(true)
-, _dirty(true)
-, _vertexBuffer(nullptr)
-, _vData(nullptr)
-, _indexBuffer(nullptr)
 {
 }
 
@@ -133,10 +116,14 @@ TMXLayer::~TMXLayer()
     CC_SAFE_RELEASE(_tileSet);
     CC_SAFE_RELEASE(_texture);
     CC_SAFE_FREE(_tiles);
-    CC_SAFE_RELEASE(_vData);
     CC_SAFE_RELEASE(_vertexBuffer);
     CC_SAFE_RELEASE(_indexBuffer);
-    
+
+    for (auto& e : _customCommands)
+    {
+        CC_SAFE_RELEASE(e.second->getPipelineDescriptor().programState);
+        delete e.second;
+    }
 }
 
 void TMXLayer::draw(Renderer *renderer, const Mat4& transform, uint32_t flags)
@@ -155,9 +142,10 @@ void TMXLayer::draw(Renderer *renderer, const Mat4& transform, uint32_t flags)
         Size s = Director::getInstance()->getVisibleSize();
         const Vec2 &anchor = getAnchorPoint();
         auto rect = Rect(Camera::getVisitingCamera()->getPositionX() - s.width * (anchor.x == 0.0f ? 0.5f : anchor.x),
-                     Camera::getVisitingCamera()->getPositionY() - s.height * (anchor.y == 0.0f ? 0.5f : anchor.y),
+                         Camera::getVisitingCamera()->getPositionY() - s.height * (anchor.y == 0.0f ? 0.5f : anchor.y),
                      s.width,
                      s.height);
+
         
         Mat4 inv = transform;
         inv.inverse();
@@ -168,35 +156,18 @@ void TMXLayer::draw(Renderer *renderer, const Mat4& transform, uint32_t flags)
         updatePrimitives();
         _dirty = false;
     }
-    
-    if(_renderCommands.size() < static_cast<size_t>(_primitives.size()))
+
+    const auto& projectionMat = Director::getInstance()->getMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_PROJECTION);
+    Mat4 finalMat = projectionMat * _modelViewTransform;
+    for (const auto& e : _customCommands)
     {
-        _renderCommands.resize(_primitives.size());
-    }
-    
-    int index = 0;
-    for(const auto& iter : _primitives)
-    {
-        if(iter.second->getCount() > 0)
+        if (e.second->getIndexDrawCount() > 0)
         {
-            auto& cmd = _renderCommands[index++];
-            auto blendfunc = _texture->hasPremultipliedAlpha() ? BlendFunc::ALPHA_PREMULTIPLIED : BlendFunc::ALPHA_NON_PREMULTIPLIED;
-            cmd.init(iter.first, _texture->getName(), getGLProgramState(), blendfunc, iter.second, _modelViewTransform, flags);
-            renderer->addCommand(&cmd);
+            auto mvpmatrixLocation = e.second->getPipelineDescriptor().programState->getUniformLocation("u_MVPMatrix");
+            e.second->getPipelineDescriptor().programState->setUniform(mvpmatrixLocation, finalMat.m, sizeof(finalMat.m));
+            renderer->addCommand(e.second);
         }
     }
-}
-
-void TMXLayer::onDraw(Primitive *primitive)
-{
-    GL::bindTexture2D(_texture->getName());
-    getGLProgramState()->apply(_modelViewTransform);
-    
-    GL::bindVAO(0);
-    primitive->draw();
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    CC_INCREMENT_GL_DRAWN_BATCHES_AND_VERTICES(1, primitive->getCount() * 4);
 }
 
 void TMXLayer::updateTiles(const Rect& culledRect)
@@ -211,10 +182,10 @@ void TMXLayer::updateTiles(const Rect& culledRect)
     visibleTiles.origin.y += 1;
     
     // if x=0.7, width=9.5, we need to draw number 0~10 of tiles, and so is height.
-    visibleTiles.size.width = std::ceil(visibleTiles.origin.x + visibleTiles.size.width)  - std::floor(visibleTiles.origin.x);
-    visibleTiles.size.height = std::ceil(visibleTiles.origin.y + visibleTiles.size.height) - std::floor(visibleTiles.origin.y);
-    visibleTiles.origin.x = std::floor(visibleTiles.origin.x);
-    visibleTiles.origin.y = std::floor(visibleTiles.origin.y);
+    visibleTiles.size.width = ceil(visibleTiles.origin.x + visibleTiles.size.width)  - floor(visibleTiles.origin.x);
+    visibleTiles.size.height = ceil(visibleTiles.origin.y + visibleTiles.size.height) - floor(visibleTiles.origin.y);
+    visibleTiles.origin.x = floor(visibleTiles.origin.x);
+    visibleTiles.origin.y = floor(visibleTiles.origin.y);
 
     // for the bigger tiles.
     int tilesOverX = 0;
@@ -223,8 +194,8 @@ void TMXLayer::updateTiles(const Rect& culledRect)
     float tileSizeMax = std::max(tileSize.width, tileSize.height);
     if (_layerOrientation == FAST_TMX_ORIENTATION_ORTHO)
     {
-        tilesOverX = std::ceil(tileSizeMax / mapTileSize.width) - 1;
-        tilesOverY = std::ceil(tileSizeMax / mapTileSize.height) - 1;
+        tilesOverX = ceil(tileSizeMax / mapTileSize.width) - 1;
+        tilesOverY = ceil(tileSizeMax / mapTileSize.height) - 1;
         
         if (tilesOverX < 0) tilesOverX = 0;
         if (tilesOverY < 0) tilesOverY = 0;
@@ -236,8 +207,8 @@ void TMXLayer::updateTiles(const Rect& culledRect)
         if (overTileRect.size.height < 0) overTileRect.size.height = 0;
         overTileRect = RectApplyTransform(overTileRect, nodeToTileTransform);
         
-        tilesOverX = std::ceil(overTileRect.origin.x + overTileRect.size.width) - std::floor(overTileRect.origin.x);
-        tilesOverY = std::ceil(overTileRect.origin.y + overTileRect.size.height) - std::floor(overTileRect.origin.y);
+        tilesOverX = ceil(overTileRect.origin.x + overTileRect.size.width) - floor(overTileRect.origin.x);
+        tilesOverY = ceil(overTileRect.origin.y + overTileRect.size.height) - floor(overTileRect.origin.y);
     }
     else
     {
@@ -294,37 +265,28 @@ void TMXLayer::updateTiles(const Rect& culledRect)
 
 void TMXLayer::updateVertexBuffer()
 {
-    GL::bindVAO(0);
-    if(nullptr == _vData)
+    unsigned int vertexBufferSize = (unsigned int)(sizeof(V3F_C4B_T2F) * _totalQuads.size() * 4);
+    if (!_vertexBuffer)
     {
-        _vertexBuffer = VertexBuffer::create(sizeof(V3F_C4B_T2F), (int)_totalQuads.size() * 4);
-        _vData = VertexData::create();
-        _vData->setStream(_vertexBuffer, VertexStreamAttribute(0, GLProgram::VERTEX_ATTRIB_POSITION, GL_FLOAT, 3));
-        _vData->setStream(_vertexBuffer, VertexStreamAttribute(offsetof(V3F_C4B_T2F, colors), GLProgram::VERTEX_ATTRIB_COLOR, GL_UNSIGNED_BYTE, 4, true));
-        _vData->setStream(_vertexBuffer, VertexStreamAttribute(offsetof(V3F_C4B_T2F, texCoords), GLProgram::VERTEX_ATTRIB_TEX_COORD, GL_FLOAT, 2));
-        CC_SAFE_RETAIN(_vData);
-        CC_SAFE_RETAIN(_vertexBuffer);
+        auto device = backend::Device::getInstance();
+        _vertexBuffer = device->newBuffer(vertexBufferSize, backend::BufferType::VERTEX, backend::BufferUsage::STATIC);
     }
-    if(_vertexBuffer)
-    {
-        _vertexBuffer->updateVertices((void*)&_totalQuads[0], (int)_totalQuads.size() * 4, 0);
-    }
-    
+    _vertexBuffer->updateData(&_totalQuads[0], vertexBufferSize);
 }
 
 void TMXLayer::updateIndexBuffer()
 {
-    if(nullptr == _indexBuffer)
-    {
 #ifdef CC_FAST_TILEMAP_32_BIT_INDICES
-        _indexBuffer = IndexBuffer::create(IndexBuffer::IndexType::INDEX_TYPE_UINT_32, (int)_indices.size());
+    unsigned int indexBufferSize = (unsigned int)(sizeof(unsigned int) * _indices.size());
 #else
-        _indexBuffer = IndexBuffer::create(IndexBuffer::IndexType::INDEX_TYPE_SHORT_16, (int)_indices.size());
+    unsigned int indexBufferSize = (unsigned int)(sizeof(unsigned short) * _indices.size());
 #endif
-        CC_SAFE_RETAIN(_indexBuffer);
+    if (!_indexBuffer)
+    {
+        auto device = backend::Device::getInstance();
+        _indexBuffer = device->newBuffer(indexBufferSize, backend::BufferType::INDEX, backend::BufferUsage::STATIC);
     }
-    _indexBuffer->updateIndices(&_indices[0], (int)_indices.size(), 0);
-    
+    _indexBuffer->updateData(&_indices[0], indexBufferSize);
 }
 
 // FastTMXLayer - setup Tiles
@@ -348,15 +310,15 @@ void TMXLayer::setupTiles()
     switch (_layerOrientation)
     {
         case FAST_TMX_ORIENTATION_ORTHO:
-            _screenGridSize.width = std::ceil(screenSize.width / _mapTileSize.width) + 1;
-            _screenGridSize.height = std::ceil(screenSize.height / _mapTileSize.height) + 1;
+            _screenGridSize.width = ceil(screenSize.width / _mapTileSize.width) + 1;
+            _screenGridSize.height = ceil(screenSize.height / _mapTileSize.height) + 1;
 
             // tiles could be bigger than the grid, add additional rows if needed
             _screenGridSize.height += _tileSet->_tileSize.height / _mapTileSize.height;
             break;
         case FAST_TMX_ORIENTATION_ISO:
-            _screenGridSize.width = std::ceil(screenSize.width / _mapTileSize.width) + 2;
-            _screenGridSize.height = std::ceil(screenSize.height / (_mapTileSize.height/2)) + 4;
+            _screenGridSize.width = ceil(screenSize.width / _mapTileSize.width) + 2;
+            _screenGridSize.height = ceil(screenSize.height / (_mapTileSize.height/2)) + 4;
             break;
         case FAST_TMX_ORIENTATION_HEX:
         default:
@@ -422,31 +384,80 @@ Mat4 TMXLayer::tileToNodeTransform()
 
 void TMXLayer::updatePrimitives()
 {
+    auto blendfunc = _texture->hasPremultipliedAlpha() ? BlendFunc::ALPHA_PREMULTIPLIED : BlendFunc::ALPHA_NON_PREMULTIPLIED;
     for(const auto& iter : _indicesVertexZNumber)
     {
         int start = _indicesVertexZOffsets.at(iter.first);
-        
-        auto primitiveIter= _primitives.find(iter.first);
-        if(primitiveIter == _primitives.end())
+
+        auto commandIter = _customCommands.find(iter.first);
+        if (_customCommands.end() == commandIter)
         {
-            auto primitive = Primitive::create(_vData, _indexBuffer, GL_TRIANGLES);
-            primitive->setCount(iter.second * 6);
-            primitive->setStart(start * 6);
-            
-            _primitives.insert(iter.first, primitive);
+            auto command = new CustomCommand();
+            command->setVertexBuffer(_vertexBuffer);
+
+            CustomCommand::IndexFormat indexFormat = CustomCommand::IndexFormat::U_SHORT;
+#if CC_FAST_TILEMAP_32_BIT_INDICES
+            indexFormat = CustomCommand::IndexFormat::U_INT;
+#endif
+            command->setIndexBuffer(_indexBuffer, indexFormat);
+
+            command->setIndexDrawInfo(start * 6, iter.second * 6);
+
+            auto& pipelineDescriptor = command->getPipelineDescriptor();
+
+            if (_useAutomaticVertexZ)
+            {
+                CC_SAFE_RELEASE(pipelineDescriptor.programState);
+                auto programState = new (std::nothrow) backend::ProgramState(positionTextureColor_vert, positionTextureColorAlphaTest_frag);
+                pipelineDescriptor.programState = programState;
+                _alphaValueLocation = pipelineDescriptor.programState->getUniformLocation("u_alpha_value");
+                pipelineDescriptor.programState->setUniform(_alphaValueLocation, &_alphaFuncValue, sizeof(_alphaFuncValue));
+               
+            }
+            else
+            {
+                CC_SAFE_RELEASE(pipelineDescriptor.programState);
+                auto programState = new (std::nothrow) backend::ProgramState(positionTextureColor_vert, positionTextureColor_frag);
+                pipelineDescriptor.programState = programState;
+            }
+            auto vertexLayout = pipelineDescriptor.programState->getVertexLayout();
+            const auto& attributeInfo = pipelineDescriptor.programState->getProgram()->getActiveAttributes();
+            auto iterAttribute = attributeInfo.find("a_position");
+            if(iterAttribute != attributeInfo.end())
+            {
+                vertexLayout->setAttribute("a_position", iterAttribute->second.location, backend::VertexFormat::FLOAT3, 0, false);
+            }
+            iterAttribute = attributeInfo.find("a_texCoord");
+            if(iterAttribute != attributeInfo.end())
+            {
+                vertexLayout->setAttribute("a_texCoord", iterAttribute->second.location, backend::VertexFormat::FLOAT2, offsetof(V3F_C4B_T2F, texCoords), false);
+            }
+            iterAttribute = attributeInfo.find("a_color");
+            if(iterAttribute != attributeInfo.end())
+            {
+                vertexLayout->setAttribute("a_color", iterAttribute->second.location, backend::VertexFormat::UBYTE4, offsetof(V3F_C4B_T2F, colors), true);
+            }
+            vertexLayout->setLayout(sizeof(V3F_C4B_T2F));
+            _mvpMatrixLocaiton = pipelineDescriptor.programState->getUniformLocation("u_MVPMatrix");
+            _textureLocation = pipelineDescriptor.programState->getUniformLocation("u_texture");
+            pipelineDescriptor.programState->setTexture(_textureLocation, 0, _texture->getBackendTexture());
+            command->init(_globalZOrder, blendfunc);
+
+            _customCommands[iter.first] = command;
         }
         else
         {
-            primitiveIter->second->setCount(iter.second * 6);
-            primitiveIter->second->setStart(start * 6);
+            commandIter->second->setIndexDrawInfo(start * 6, iter.second * 6);
         }
     }
 }
 
-void TMXLayer::setOpacity(GLubyte opacity) {
+void TMXLayer::setOpacity(uint8_t opacity) 
+{
     Node::setOpacity(opacity);
     _quadsDirty = true;
 }
+
 
 void TMXLayer::updateTotalQuads()
 {
@@ -463,11 +474,13 @@ void TMXLayer::updateTotalQuads()
         auto color = Color4B::WHITE;
         color.a = getDisplayedOpacity();
 
-        if (_texture->hasPremultipliedAlpha()) {
+        if (_texture->hasPremultipliedAlpha()) 
+        {
             color.r *= color.a / 255.0f;
             color.g *= color.a / 255.0f;
             color.b *= color.a / 255.0f;
         }
+
         
         int quadIndex = 0;
         for(int y = 0; y < _layerSize.height; ++y)
@@ -566,11 +579,12 @@ void TMXLayer::updateTotalQuads()
                 quad.tl.texCoords.v = top;
                 quad.tr.texCoords.u = right;
                 quad.tr.texCoords.v = top;
-
+                
                 quad.bl.colors = color;
                 quad.br.colors = color;
                 quad.tl.colors = color;
                 quad.tr.colors = color;
+
                 
                 ++quadIndex;
             }
@@ -754,17 +768,7 @@ void TMXLayer::parseInternalProperties()
     {
         _useAutomaticVertexZ = true;
         auto alphaFuncVal = getProperty("cc_alpha_func");
-        float alphaFuncValue = alphaFuncVal.asFloat();
-        setGLProgram(GLProgramCache::getInstance()->getGLProgram(GLProgram::SHADER_NAME_POSITION_TEXTURE_ALPHA_TEST));
-        
-        GLint alphaValueLocation = glGetUniformLocation(getGLProgram()->getProgram(), GLProgram::UNIFORM_NAME_ALPHA_TEST_VALUE);
-        
-        // NOTE: alpha test shader is hard-coded to use the equivalent of a glAlphaFunc(GL_GREATER) comparison
-        
-        // use shader program to set uniform
-        getGLProgram()->use();
-        getGLProgram()->setUniformLocationWith1f(alphaValueLocation, alphaFuncValue);
-        CHECK_GL_ERROR_DEBUG();
+        _alphaFuncValue = alphaFuncVal.asFloat();
     }
     else
     {

@@ -40,8 +40,6 @@ enum
     IDC_RESTART
 };
 
-static cocos2d::Scene* physicsScene = nullptr;
-
 #define START_POS_X -0.5
 #define START_POS_Y -2.5
 #define START_POS_Z -0.5
@@ -49,6 +47,8 @@ static cocos2d::Scene* physicsScene = nullptr;
 #define ARRAY_SIZE_X 4
 #define ARRAY_SIZE_Y 3
 #define ARRAY_SIZE_Z 4
+
+static cocos2d::Scene *physicsScene = nullptr;
 
 Physics3DTests::Physics3DTests()
 {
@@ -62,7 +62,7 @@ Physics3DTests::Physics3DTests()
     ADD_TEST_CASE(Physics3DColliderDemo);
     ADD_TEST_CASE(Physics3DTerrainDemo);
 #endif
-}
+};
 
 #if CC_USE_3D_PHYSICS == 0
 void Physics3DDemoDisabled::onEnter()
@@ -143,7 +143,7 @@ void Physics3DTestDemo::onTouchesBegan(const std::vector<Touch*>& touches, cocos
 
 void Physics3DTestDemo::onTouchesMoved(const std::vector<Touch*>& touches, cocos2d::Event  *event)
 {
-    if (!touches.empty() && _camera)
+    if (touches.size() && _camera)
     {
         auto touch = touches[0];
         auto delta = touch->getDelta();
@@ -176,7 +176,7 @@ void Physics3DTestDemo::onTouchesEnded(const std::vector<Touch*>& touches, cocos
     }
 }
 
-Physics3DTestDemo::Physics3DTestDemo()
+Physics3DTestDemo::Physics3DTestDemo( void )
 : _angle(0.0f)
 , _camera(nullptr)
 {
@@ -188,7 +188,7 @@ void Physics3DTestDemo::update( float /*delta*/ )
     
 }
 
-Physics3DTestDemo::~Physics3DTestDemo()
+Physics3DTestDemo::~Physics3DTestDemo( void )
 {
     
 }
@@ -651,18 +651,18 @@ bool Physics3DTerrainDemo::init()
         Mat4 localTrans;
         auto bodyshape = Physics3DShape::createBox(Vec3(2.0f, 4.0f, 2.0f));
         Mat4::createTranslation(0.0f, 2.0f, 0.0f, &localTrans);
-        shapeList.emplace_back(bodyshape, localTrans);
+        shapeList.push_back(std::make_pair(bodyshape, localTrans));
         auto headshape = Physics3DShape::createSphere(1.5f);
         Mat4::createTranslation(0.6f, 5.0f, -1.5f, &localTrans);
-        shapeList.emplace_back(headshape, localTrans);
+        shapeList.push_back(std::make_pair(headshape, localTrans));
         auto lhandshape = Physics3DShape::createBox(Vec3(1.0f, 3.0f, 1.0f));
         Mat4::createRotation(Vec3(1.0f, 0.0f, 0.0f), CC_DEGREES_TO_RADIANS(15.0f), &localTrans);
         localTrans.m[12] = -1.5f; localTrans.m[13] = 2.5f; localTrans.m[14] = -2.5f;
-        shapeList.emplace_back(lhandshape, localTrans);
+        shapeList.push_back(std::make_pair(lhandshape, localTrans));
         auto rhandshape = Physics3DShape::createBox(Vec3(1.0f, 3.0f, 1.0f));
         Mat4::createRotation(Vec3(1.0f, 0.0f, 0.0f), CC_DEGREES_TO_RADIANS(-15.0f), &localTrans);
         localTrans.m[12] = 2.0f; localTrans.m[13] = 2.5f; localTrans.m[14] = 1.f;
-        shapeList.emplace_back(rhandshape, localTrans);
+        shapeList.push_back(std::make_pair(rhandshape, localTrans));
 
         rbDes.mass = 10.0f;
         rbDes.shape = Physics3DShape::createCompoundShape(shapeList);

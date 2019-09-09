@@ -35,7 +35,6 @@ FileUtilsTests::FileUtilsTests()
     ADD_TEST_CASE(TestIsDirectoryExist);
     ADD_TEST_CASE(TestFileFuncs);
     ADD_TEST_CASE(TestDirectoryFuncs);
-    ADD_TEST_CASE(TextWritePlist);
     ADD_TEST_CASE(TestWriteString);
     ADD_TEST_CASE(TestGetContents);
     ADD_TEST_CASE(TestWriteData);
@@ -507,96 +506,6 @@ std::string TestDirectoryFuncs::subtitle() const
     return "";
 }
 
-// TextWritePlist
-
-void TextWritePlist::onEnter()
-{
-    FileUtilsDemo::onEnter();
-    auto root = __Dictionary::create();
-    auto string = __String::create("string element value");
-    root->setObject(string, "string element key");
-
-    auto array = __Array::create();
-
-    auto dictInArray = __Dictionary::create();
-    dictInArray->setObject(__String::create("string in dictInArray value 0"), "string in dictInArray key 0");
-    dictInArray->setObject(__String::create("string in dictInArray value 1"), "string in dictInArray key 1");
-    array->addObject(dictInArray);
-
-    array->addObject(__String::create("string in array"));
-
-    auto arrayInArray = __Array::create();
-    arrayInArray->addObject(__String::create("string 0 in arrayInArray"));
-    arrayInArray->addObject(__String::create("string 1 in arrayInArray"));
-    array->addObject(arrayInArray);
-
-    root->setObject(array, "array");
-
-    auto dictInDict = __Dictionary::create();
-    dictInDict->setObject(__String::create("string in dictInDict value"), "string in dictInDict key");
-
-    //add boolean to the plist
-    auto booleanObject = __Bool::create(true);
-    dictInDict->setObject(booleanObject, "bool");
-
-    //add integer to the plist
-    auto intObject = __Integer::create(1024);
-    dictInDict->setObject(intObject, "integer");
-
-    //add float to the plist
-    auto floatObject = __Float::create(1024.1024f);
-    dictInDict->setObject(floatObject, "float");
-
-    //add double to the plist
-    auto doubleObject = __Double::create(1024.123);
-    dictInDict->setObject(doubleObject, "double");
-
-
-
-    root->setObject(dictInDict, "dictInDict, Hello World");
-
-    // end with /
-    std::string writablePath = FileUtils::getInstance()->getWritablePath();
-    std::string fullPath = writablePath + "text.plist";
-    if(root->writeToFile(fullPath.c_str()))
-        log("see the plist file at %s", fullPath.c_str());
-    else
-        log("write plist file failed");
-
-    auto label = Label::createWithTTF(fullPath, "fonts/Thonburi.ttf", 6);
-    this->addChild(label);
-    auto winSize = Director::getInstance()->getWinSize();
-    label->setPosition(winSize.width/2, winSize.height/3);
-
-    auto loadDict = __Dictionary::createWithContentsOfFile(fullPath.c_str());
-    auto loadDictInDict = (__Dictionary*)loadDict->objectForKey("dictInDict, Hello World");
-    auto boolValue = (__String*)loadDictInDict->objectForKey("bool");
-    log("%s",boolValue->getCString());
-    auto floatValue = (__String*)loadDictInDict->objectForKey("float");
-    log("%s",floatValue->getCString());
-    auto intValue = (__String*)loadDictInDict->objectForKey("integer");
-    log("%s",intValue->getCString());
-    auto doubleValue = (__String*)loadDictInDict->objectForKey("double");
-    log("%s",doubleValue->getCString());
-
-}
-
-void TextWritePlist::onExit()
-{
-    FileUtilsDemo::onExit();
-}
-
-std::string TextWritePlist::title() const
-{
-    return "FileUtils: Dictionary to plist";
-}
-
-std::string TextWritePlist::subtitle() const
-{
-    std::string writablePath = FileUtils::getInstance()->getWritablePath();
-    return ("See plist file at your writablePath");
-}
-
 void TestWriteString::onEnter()
 {
     FileUtilsDemo::onEnter();
@@ -617,7 +526,7 @@ void TestWriteString::onEnter()
     // writeTest
     std::string writeDataStr = "the string data will be write into a file";
     std::string fullPath = writablePath + fileName;
-    if (FileUtils::getInstance()->writeStringToFile(writeDataStr, fullPath))
+    if (FileUtils::getInstance()->writeStringToFile(writeDataStr, fullPath.c_str()))
     {
         log("see the plist file at %s", fullPath.c_str());
         writeResult->setString("write success:" + writeDataStr);
@@ -793,7 +702,7 @@ void TestWriteData::onEnter()
     Data writeData;
     writeData.copy((unsigned char *)writeDataStr.c_str(), writeDataStr.size());
     std::string fullPath = writablePath + fileName;
-    if (FileUtils::getInstance()->writeDataToFile(writeData, fullPath))
+    if (FileUtils::getInstance()->writeDataToFile(writeData, fullPath.c_str()))
     {
         log("see the plist file at %s", fullPath.c_str());
         writeResult->setString("write success:" + writeDataStr);
@@ -881,7 +790,7 @@ void TestWriteValueMap::onEnter()
     // end with /
     std::string writablePath = FileUtils::getInstance()->getWritablePath();
     std::string fullPath = writablePath + "testWriteValueMap.plist";
-    if (FileUtils::getInstance()->writeValueMapToFile(valueMap, fullPath))
+    if (FileUtils::getInstance()->writeValueMapToFile(valueMap, fullPath.c_str()))
     {
         log("see the plist file at %s", fullPath.c_str());
         writeResult->setString("write success");
@@ -892,7 +801,7 @@ void TestWriteValueMap::onEnter()
         writeResult->setString("write failed");
     }
 
-    ValueMap readValueMap = FileUtils::getInstance()->getValueMapFromFile(fullPath);
+    ValueMap readValueMap = FileUtils::getInstance()->getValueMapFromFile(fullPath.c_str());
     std::string readDataStr = "read data:\n";
     // read value map data
     ValueMap readMapInMap = readValueMap["data0"].asValueMap();
@@ -984,7 +893,7 @@ void TestWriteValueVector::onEnter()
     // end with /
     std::string writablePath = FileUtils::getInstance()->getWritablePath();
     std::string fullPath = writablePath + "testWriteValueVector.plist";
-    if (FileUtils::getInstance()->writeValueVectorToFile(array, fullPath))
+    if (FileUtils::getInstance()->writeValueVectorToFile(array, fullPath.c_str()))
     {
         log("see the plist file at %s", fullPath.c_str());
         writeResult->setString("write success");
@@ -995,7 +904,7 @@ void TestWriteValueVector::onEnter()
         writeResult->setString("write failed");
     }
 
-    ValueVector readArray = FileUtils::getInstance()->getValueVectorFromFile(fullPath);
+    ValueVector readArray = FileUtils::getInstance()->getValueVectorFromFile(fullPath.c_str());
     std::string readDataStr = "read data:\n";
     // read value map data
     ValueMap readMapInArray = readArray.at(0).asValueMap();
@@ -1424,7 +1333,6 @@ void TestListFiles::onEnter()
     {
         CCLOG("defResRootPath %d: \t %s", i, list[i].c_str());
     }
-
 
     cntLabel->setString(cntBuffer);
 

@@ -37,7 +37,7 @@ extern "C" {
 #include "scripting/lua-bindings/manual/CCLuaValue.h"
 #include "scripting/lua-bindings/manual/cocos2d/LuaScriptHandlerMgr.h"
 #include "scripting/lua-bindings/manual/Lua-BindingsExport.h"
-#include "deprecated/CCNotificationCenter.h"
+#include "scripting/deprecated/CCNotificationCenter.h"
 
 /**
  * @addtogroup lua
@@ -60,18 +60,18 @@ public:
      *
      * @return the instance of LuaEngine.
      */
-    static LuaEngine* getInstance();
+    static LuaEngine* getInstance(void);
     /**
      * Get defaultEngine of LuaEngine, it was deprecated.
      *
      * @return the instance of LuaEngine.
      */
-    CC_DEPRECATED_ATTRIBUTE static LuaEngine* defaultEngine() { return LuaEngine::getInstance(); }
+    CC_DEPRECATED_ATTRIBUTE static LuaEngine* defaultEngine(void) { return LuaEngine::getInstance(); }
     
     /** 
      * Destructor of LuaEngine.
      */
-    virtual ~LuaEngine();
+    virtual ~LuaEngine(void);
     
     /**
      * Get ccScriptType of LuaEngine used, it is always kScriptTypeLua.
@@ -88,7 +88,7 @@ public:
      *
      * @return LuaStack object.
      */
-    LuaStack *getLuaStack() {
+    LuaStack *getLuaStack(void) {
         return _stack;
     }
     
@@ -217,11 +217,11 @@ public:
      */
     virtual int handleEvent(ScriptHandlerMgr::HandlerType type, void* data, int numResults, const std::function<void(lua_State*,int)>& func);
 private:
-    LuaEngine()
+    LuaEngine(void)
     : _stack(nullptr)
     {
     }
-    bool init();
+    bool init(void);
     int handleNodeEvent(void* data);
     int handleMenuClickedEvent(void* data);
     int handleCallFuncActionEvent(void* data);

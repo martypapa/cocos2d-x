@@ -24,8 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ****************************************************************************/
 
-#ifndef __CC_EGLViewIMPL_DESKTOP_H__
-#define __CC_EGLViewIMPL_DESKTOP_H__
+#pragma once
 
 #include "base/CCRef.h"
 #include "platform/CCCommon.h"
@@ -102,26 +101,14 @@ public:
     virtual void setDefaultIcon() const override;
 #endif /* CC_ICON_SET_SUPPORT */
 
-    /**
-     * Sets the cursor for the window with custom image.
-     */
-    virtual void setCursor(const std::string& filename, Vec2 hotspot = Vec2::ANCHOR_TOP_LEFT) override;
-
-    /**
-     * Sets the cursor for the window back to default.
-     */
-    virtual void setDefaultCursor() override;
-
-    /**
-     * Hide or Show the mouse cursor if there is one.
-     */
-    virtual void setCursorVisible(bool isVisible) override;
-
     /*
      * Set zoom factor for frame. This method is for debugging big resolution (e.g.new ipad) app on desktop.
      */
     void setFrameZoomFactor(float zoomFactor) override;
-
+    /**
+     * Hide or Show the mouse cursor if there is one.
+     */
+    virtual void setCursorVisible(bool isVisible) override;
     /** Retina support is disabled by default
      *  @note This method is only available on Mac.
      */
@@ -145,11 +132,11 @@ protected:
     GLViewImpl(bool initglfw = true);
     virtual ~GLViewImpl();
 
+    bool initGlew();
+
     bool initWithRect(const std::string& viewName, Rect rect, float frameZoomFactor, bool resizable);
     bool initWithFullScreen(const std::string& viewName);
     bool initWithFullscreen(const std::string& viewname, const GLFWvidmode &videoMode, GLFWmonitor *monitor);
-
-    bool initGlew();
 
     void updateFrameSize();
 
@@ -181,8 +168,6 @@ protected:
 
     float _mouseX;
     float _mouseY;
-
-    GLFWcursor* _cursor;
 
     friend class GLFWEventHandler;
     
@@ -242,16 +227,17 @@ public:
             _view->onGLFWWindowPosCallback(windows, x, y);
     }
 
-    static void onGLFWframebuffersize(GLFWwindow* window, int w, int h)
-    {
-        if (_view)
-            _view->onGLFWframebuffersize(window, w, h);
-    }
-
     static void onGLFWWindowSizeFunCallback(GLFWwindow *window, int width, int height)
     {
         if (_view)
             _view->onGLFWWindowSizeFunCallback(window, width, height);
+    }
+
+
+    static void onGLFWframebuffersize(GLFWwindow *window, int width, int height)
+    {
+        if (_view)
+            _view->onGLFWframebuffersize(window, width, height);
     }
 
     static void setGLViewImpl(GLViewImpl* view)
@@ -275,10 +261,9 @@ public:
         }
     }
 
+
 private:
     static GLViewImpl* _view;
 };
 
 NS_CC_END   // end of namespace   cocos2d
-
-#endif  // end of __CC_EGLViewImpl_DESKTOP_H__

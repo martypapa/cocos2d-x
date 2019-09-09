@@ -23,10 +23,10 @@
  ****************************************************************************/
 
 #include "Scene3DTest.h"
-#include <cmath>
+
 #include "ui/CocosGUI.h"
 #include "renderer/CCRenderState.h"
-#include "spine/spine-cocos2dx.h"
+#include <spine/spine-cocos2dx.h>
 
 #include "../testResource.h"
 #include "../TerrainTest/TerrainTest.h"
@@ -395,8 +395,8 @@ void Scene3DTestScene::createWorld3D()
     Texture2D::TexParams tRepeatParams;
     tRepeatParams.magFilter = GL_LINEAR;
     tRepeatParams.minFilter = GL_LINEAR;
-    tRepeatParams.wrapS = GL_MIRRORED_REPEAT;
-    tRepeatParams.wrapT = GL_MIRRORED_REPEAT;
+    tRepeatParams.sAddressMode = GL_MIRRORED_REPEAT;
+    tRepeatParams.tAddressMode = GL_MIRRORED_REPEAT;
     _textureCube->setTexParameters(tRepeatParams);
     
     // pass the texture sampler to our custom shader
@@ -807,32 +807,32 @@ void Scene3DTestScene::createDescDlg()
     }
     
     auto& body = _skins[(int)SkinType::UPPER_BODY];
-    body.emplace_back("Girl_UpperBody01");
-    body.emplace_back("Girl_UpperBody02");
+    body.push_back("Girl_UpperBody01");
+    body.push_back("Girl_UpperBody02");
     
     auto& pants = _skins[(int)SkinType::PANTS];
-    pants.emplace_back("Girl_LowerBody01");
-    pants.emplace_back("Girl_LowerBody02");
+    pants.push_back("Girl_LowerBody01");
+    pants.push_back("Girl_LowerBody02");
     
     auto& shoes = _skins[(int)SkinType::SHOES];
-    shoes.emplace_back("Girl_Shoes01");
-    shoes.emplace_back("Girl_Shoes02");
+    shoes.push_back("Girl_Shoes01");
+    shoes.push_back("Girl_Shoes02");
     
     auto& hair = _skins[(int)SkinType::HAIR];
-    hair.emplace_back("Girl_Hair01");
-    hair.emplace_back("Girl_Hair02");
+    hair.push_back("Girl_Hair01");
+    hair.push_back("Girl_Hair02");
     
     auto& face = _skins[(int)SkinType::FACE];
-    face.emplace_back("Girl_Face01");
-    face.emplace_back("Girl_Face02");
+    face.push_back("Girl_Face01");
+    face.push_back("Girl_Face02");
     
     auto& hand = _skins[(int)SkinType::HAND];
-    hand.emplace_back("Girl_Hand01");
-    hand.emplace_back("Girl_Hand02");
+    hand.push_back("Girl_Hand01");
+    hand.push_back("Girl_Hand02");
     
     auto& glasses = _skins[(int)SkinType::GLASSES];
-    glasses.emplace_back("");
-    glasses.emplace_back("Girl_Glasses01");
+    glasses.push_back("");
+    glasses.push_back("Girl_Glasses01");
     
     memset(_curSkin, 0, (int)SkinType::MAX_TYPE * sizeof(int));
     
@@ -917,7 +917,7 @@ void Scene3DTestScene::onTouchEnd(Touch* touch, Event* event)
             dir = collisionPoint - _player->getPosition3D();
             dir.y = 0;
             dir.normalize();
-            _player->_headingAngle =  -1*std::acos(dir.dot(Vec3(0,0,-1)));
+            _player->_headingAngle =  -1*acos(dir.dot(Vec3(0,0,-1)));
             dir.cross(dir,Vec3(0,0,-1),&_player->_headingAxis);
             _player->_targetPos=collisionPoint;
             _player->forward();

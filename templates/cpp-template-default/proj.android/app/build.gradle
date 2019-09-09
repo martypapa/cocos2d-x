@@ -13,30 +13,10 @@ android {
         versionName "1.0"
 
         externalNativeBuild {
-            if (PROP_BUILD_TYPE == 'ndk-build') {
-                ndkBuild {
-                    targets 'MyGame'
-                    arguments 'NDK_TOOLCHAIN_VERSION=clang'
-                    arguments '-j' + Runtime.runtime.availableProcessors()
-
-                    def module_paths = [project.file("../../cocos2d").absolutePath,
-                                        project.file("../../cocos2d/cocos").absolutePath,
-                                        project.file("../../cocos2d/external").absolutePath]
-                    if (OperatingSystem.current().isWindows()) {
-                        module_paths = module_paths.collect {it.replaceAll('\\\\', '/')}
-                        arguments 'NDK_MODULE_PATH=' + module_paths.join(";")
-                    }
-                    else {
-                        arguments 'NDK_MODULE_PATH=' + module_paths.join(':')
-                    }
-                }
-            }
-            else if (PROP_BUILD_TYPE == 'cmake') {
-                cmake {
-                    targets 'MyGame'
-                    arguments "-DCMAKE_FIND_ROOT_PATH=", "-DANDROID_STL=c++_static", "-DANDROID_TOOLCHAIN=clang", "-DANDROID_ARM_NEON=TRUE"
-                    cppFlags "-frtti -fexceptions -fsigned-char"
-                }
+            cmake {
+                targets 'MyGame'
+                arguments "-DCMAKE_FIND_ROOT_PATH=", "-DANDROID_STL=c++_static", "-DANDROID_TOOLCHAIN=clang", "-DANDROID_ARM_NEON=TRUE"
+                cppFlags "-frtti -fexceptions -fsigned-char"
             }
         }
 
@@ -50,19 +30,12 @@ android {
         java.srcDir "src"
         res.srcDir "res"
         manifest.srcFile "AndroidManifest.xml"
-        assets.srcDir "assets"
+        assets.srcDir "../../Resources"
     }
 
     externalNativeBuild {
-        if (PROP_BUILD_TYPE == 'ndk-build') {
-            ndkBuild {
-                path "jni/Android.mk"
-            }
-        }
-        else if (PROP_BUILD_TYPE == 'cmake') {
-            cmake {
-                path "../../CMakeLists.txt"
-            }
+        cmake {
+            path "../../CMakeLists.txt"
         }
     }
 
@@ -89,23 +62,12 @@ android {
             if (project.hasProperty("RELEASE_STORE_FILE")) {
                 signingConfig signingConfigs.release
             }
-
-            externalNativeBuild {
-                ndkBuild {
-                    arguments 'NDK_DEBUG=0'
-                }
-            }
         }
 
         debug {
             debuggable true
             jniDebuggable true
             renderscriptDebuggable true
-            externalNativeBuild {
-                ndkBuild {
-                    arguments 'NDK_DEBUG=1'
-                }
-            }
         }
     }
 }
@@ -121,8 +83,8 @@ android.applicationVariants.all { variant ->
     
     tasks.register(copyTaskName) {
         copy {
-            from project_root_folder + "/Resources"
-            into dest_assets_folder
+            from "${buildDir}/../../../Resources"
+            into "${buildDir}/intermediates/assets/${variant.dirName}"
             exclude "**/*.gz"
         }
     }

@@ -45,7 +45,6 @@ extern "C" {
 #include "scripting/lua-bindings/manual/platform/android/CCLuaJavaBridge.h"
 #endif
 
-#include "scripting/lua-bindings/manual/cocos2d/LuaOpengl.h"
 #include "scripting/lua-bindings/manual/cocos2d/LuaScriptHandlerMgr.h"
 #include "scripting/lua-bindings/auto/lua_cocos2dx_auto.hpp"
 #include "scripting/lua-bindings/manual/cocos2d/lua_cocos2dx_manual.hpp"
@@ -54,10 +53,11 @@ extern "C" {
 #include "scripting/lua-bindings/auto/lua_cocos2dx_physics_auto.hpp"
 #include "scripting/lua-bindings/manual/cocos2d/lua_cocos2dx_physics_manual.hpp"
 #include "scripting/lua-bindings/auto/lua_cocos2dx_experimental_auto.hpp"
+#include "scripting/lua-bindings/auto/lua_cocos2dx_backend_auto.hpp"
 #include "scripting/lua-bindings/manual/cocos2d/lua_cocos2dx_experimental_manual.hpp"
 #include "base/ZipUtils.h"
-#include "deprecated/CCBool.h"
-#include "deprecated/CCDouble.h"
+#include "scripting/deprecated/CCBool.h"
+#include "scripting/deprecated/CCDouble.h"
 #include "platform/CCFileUtils.h"
 
 namespace {
@@ -145,14 +145,18 @@ bool LuaStack::init()
 
     g_luaType.clear();
     register_all_cocos2dx(_state);
-    tolua_opengl_open(_state);
+    register_all_cocos2dx_backend(_state);
     register_all_cocos2dx_manual(_state);
     register_all_cocos2dx_module_manual(_state);
     register_all_cocos2dx_math_manual(_state);
+    register_all_cocos2dx_shaders_manual(_state);
+    register_all_cocos2dx_bytearray_manual(_state);
+    
     register_all_cocos2dx_experimental(_state);
     register_all_cocos2dx_experimental_manual(_state);
-
-    register_glnode_manual(_state);
+    
+    tolua_luanode_open(_state);
+    register_luanode_manual(_state);
 #if CC_USE_PHYSICS
     register_all_cocos2dx_physics(_state);
     register_all_cocos2dx_physics_manual(_state);
@@ -801,7 +805,7 @@ int LuaStack::luaLoadChunksFromZIP(lua_State *L)
             std::string filename = zip->getFirstFilename();
             while (filename.length()) {
                 ssize_t bufferSize = 0;
-                unsigned char *zbuffer = zip->getFileData(filename, &bufferSize);
+                unsigned char *zbuffer = zip->getFileData(filename.c_str(), &bufferSize);
                 if (bufferSize) {
                     // remove .lua or .luac extension
                     size_t pos = filename.find_last_of('.');

@@ -123,17 +123,43 @@ protected:
     cocos2d::Vec2 _lastPos;
 };
 
+class SpriteCreation : public MultiSceneTest
+{
+public:
+    CREATE_FUNC(SpriteCreation);
+    virtual std::string title() const override;
+    virtual std::string subtitle() const override;
+
+    void addSpritesCallback(Ref *);
+    void delSpritesCallback(Ref *);
+
+    void updateSpriteCountLabel(int x);
+
+    void doTest();
+
+protected:
+    int totalSprites = 1000;
+    int suggestDelta = 100;
+    cocos2d::Label*   _labelSpriteNum = nullptr;
+    cocos2d::Label*   labelCreate = nullptr;
+    cocos2d::Label*   labelDestory = nullptr;
+    SpriteCreation();
+    virtual ~SpriteCreation();
+};
+
+
 class VBOFullTest : public MultiSceneTest
 {
 public:
     CREATE_FUNC(VBOFullTest);
     virtual std::string title() const override;
     virtual std::string subtitle() const override;
-    
+
 protected:
     VBOFullTest();
     virtual ~VBOFullTest();
 };
+
 
 class CaptureScreenTest : public MultiSceneTest
 {
@@ -190,6 +216,7 @@ protected:
     RendererBatchQuadTri();
 };
 
+
 class RendererUniformBatch : public MultiSceneTest
 {
 public:
@@ -199,8 +226,8 @@ public:
 protected:
     RendererUniformBatch();
 
-    cocos2d::GLProgramState* createBlurGLProgramState();
-    cocos2d::GLProgramState* createSepiaGLProgramState();
+    cocos2d::backend::ProgramState* createBlurProgramState();
+    cocos2d::backend::ProgramState* createSepiaProgramState();
 };
 
 class RendererUniformBatch2 : public MultiSceneTest
@@ -212,32 +239,8 @@ public:
 protected:
     RendererUniformBatch2();
 
-    cocos2d::GLProgramState* createBlurGLProgramState();
-    cocos2d::GLProgramState* createSepiaGLProgramState();
-};
-
-class SpriteCreation : public MultiSceneTest
-{
-public:
-    CREATE_FUNC(SpriteCreation);
-    virtual std::string title() const override;
-    virtual std::string subtitle() const override;
-
-    void addSpritesCallback(Ref *);
-    void delSpritesCallback(Ref *);
-
-    void updateSpriteCountLabel(int x);
-
-    void doTest();
-
-protected:
-    int totalSprites = 1000;
-    int suggestDelta = 100;
-    cocos2d::Label*   _labelSpriteNum = nullptr;
-    cocos2d::Label*   labelCreate = nullptr;
-    cocos2d::Label*   labelDestory = nullptr;
-    SpriteCreation();
-    virtual ~SpriteCreation();
+    cocos2d::backend::ProgramState* createBlurProgramState();
+    cocos2d::backend::ProgramState* createSepiaProgramState();
 };
 
 class NonBatchSprites : public MultiSceneTest
@@ -274,5 +277,4 @@ protected:
     Ticker _contFast = Ticker(2);
     Ticker _around30fps = Ticker(60 * 3);
 };
-
 #endif //__NewRendererTest_H_

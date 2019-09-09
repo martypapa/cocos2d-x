@@ -163,6 +163,10 @@ LuaMinXmlHttpRequest::~LuaMinXmlHttpRequest()
  */
 void LuaMinXmlHttpRequest::_gotHeader(const std::string& header)
 {
+	// Get Header and Set StatusText
+    // Split String into Tokens
+    char * cstr = new (std::nothrow) char [header.length()+1];
+    
     // check for colon.
     size_t found_header_field = header.find_first_of(':');
     
@@ -186,17 +190,40 @@ void LuaMinXmlHttpRequest::_gotHeader(const std::string& header)
     else
     {
         // Seems like we have the response Code! Parse it and check for it.
-        std::istringstream in(header);
-        std::string token;
-        while (std::getline(in, token, ' '))
+        char * pch;
+        strcpy(cstr, header.c_str());
+        
+        pch = strtok(cstr," ");
+        while (pch != nullptr)
         {
-            if (token.find("HTTP") != std::string::npos)
-            {
-                std::getline(in, _statusText);
-                break;
+            std::stringstream ss;
+            std::string val;
+            
+            ss << pch;
+            val = ss.str();
+            size_t found_http = val.find("HTTP");
+            
+            // Check for HTTP Header to set statusText
+            if (found_http != std::string::npos) {
+                
+                std::stringstream mystream;
+                
+                // Get Response Status
+                pch = strtok (NULL, " ");
+                mystream << pch;
+                
+                pch = strtok (NULL, "\n");
+                mystream << " " << pch;
+                
+                _statusText = mystream.str();
+                
             }
+            
+            pch = strtok (NULL, " ");
         }
     }
+    
+    CC_SAFE_DELETE_ARRAY(cstr);
 }
 
 /**
@@ -822,19 +849,19 @@ static int lua_cocos2dx_XMLHttpRequest_open(lua_State* L)
         
         if (nullptr != self->getHttpRequest())
         {
-            if (method == "post" || method == "POST")
+            if (method.compare("post") == 0 || method.compare("POST") == 0)
             {
                 self->getHttpRequest()->setRequestType(network::HttpRequest::Type::POST);
             }
-            else if(method == "get" || method == "GET")
+            else if(method.compare("get") == 0 || method.compare("GET") == 0)
             {
                 self->getHttpRequest()->setRequestType(network::HttpRequest::Type::GET);
             }
-            else if(method == "put" || method == "PUT")
+            else if(method.compare("put") == 0 || method.compare("PUT") == 0)
             {
                 self->getHttpRequest()->setRequestType(network::HttpRequest::Type::PUT);
             }
-            else if(method == "delete" || method == "DELETE")
+            else if(method.compare("delete") == 0 || method.compare("DELETE") == 0)
             {
                 self->getHttpRequest()->setRequestType(network::HttpRequest::Type::DELETE);
             }
@@ -902,8 +929,8 @@ static int lua_cocos2dx_XMLHttpRequest_send(lua_State* L)
     }
     
     if (size > 0 &&
-        (self->getMethod() == "post" || self->getMethod() == "POST"
-         || self->getMethod() == "put" || self->getMethod() == "PUT" )&&
+        (self->getMethod().compare("post") == 0 || self->getMethod().compare("POST") == 0
+         || self->getMethod().compare("put") == 0 || self->getMethod().compare("PUT") == 0 )&&
         nullptr != self->getHttpRequest())
     {
         self->getHttpRequest()->setRequestData(data,size);

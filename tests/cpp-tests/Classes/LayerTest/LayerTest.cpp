@@ -23,7 +23,6 @@
  ****************************************************************************/
 
 #include "LayerTest.h"
-#include <cmath>
 #include "../testResource.h"
 #include "../cocos/ui/UIText.h"
 
@@ -408,7 +407,7 @@ void LayerTest1::updateSize(Vec2 &touchLocation)
 {    
     auto s = Director::getInstance()->getWinSize();
     
-    auto newSize = Size( std::fabs(touchLocation.x - s.width/2)*2, std::fabs(touchLocation.y - s.height/2)*2);
+    auto newSize = Size( fabs(touchLocation.x - s.width/2)*2, fabs(touchLocation.y - s.height/2)*2);
     
     auto l = (LayerColor*) getChildByTag(kTagLayer);
 
@@ -501,18 +500,18 @@ void LayerTestBlend::newBlend(float dt)
 {
      auto layer = (LayerColor*)getChildByTag(kTagLayer);
 
-    GLenum src;
-    GLenum dst;
+     backend::BlendFactor src;
+     backend::BlendFactor dst;
 
-    if( layer->getBlendFunc().dst == GL_ZERO )
+    if( layer->getBlendFunc().dst == backend::BlendFactor::ZERO )
     {
-        src = GL_SRC_ALPHA;
-        dst = GL_ONE_MINUS_SRC_ALPHA;
+        src = backend::BlendFactor::SRC_ALPHA;
+        dst = backend::BlendFactor::ONE_MINUS_SRC_ALPHA;
     }
     else
     {
-        src = GL_ONE_MINUS_DST_COLOR;
-        dst = GL_ZERO;
+        src = backend::BlendFactor::ONE_MINUS_DST_COLOR;
+        dst = backend::BlendFactor::ZERO;
     }
 
     BlendFunc bf = {src, dst};
@@ -887,7 +886,7 @@ std::string LayerColorOccludeBug::subtitle() const
 void LayerColorOccludeBug::onEnter()
 {
     LayerTest::onEnter();
-    Director::getInstance()->setDepthTest(true);
+    Director::getInstance()->getRenderer()->setDepthTest(true);
     _layer = LayerColor::create(Color4B(0, 80, 95, 255));
     addChild(_layer);
 }
@@ -895,7 +894,7 @@ void LayerColorOccludeBug::onEnter()
 void LayerColorOccludeBug::onExit()
 {
     LayerTest::onExit();
-    Director::getInstance()->setDepthTest(false);
+    Director::getInstance()->getRenderer()->setDepthTest(false);
 }
 
 // LayerRadialGradient

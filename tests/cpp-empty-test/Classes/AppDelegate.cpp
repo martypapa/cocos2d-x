@@ -36,7 +36,8 @@
 USING_NS_CC;
 using namespace std;
 
-AppDelegate::AppDelegate() {
+AppDelegate::AppDelegate()
+{
 
 }
 
@@ -91,21 +92,21 @@ bool AppDelegate::applicationDidFinishLaunching()
     // If the frame's height is larger than the height of medium resource size, select large resource.
     if (frameSize.height > mediumResource.size.height)
     {
-        searchPath.emplace_back(largeResource.directory);
+        searchPath.push_back(largeResource.directory);
 
         director->setContentScaleFactor(MIN(largeResource.size.height/designResolutionSize.height, largeResource.size.width/designResolutionSize.width));
     }
     // If the frame's height is larger than the height of small resource size, select medium resource.
     else if (frameSize.height > smallResource.size.height)
     {
-        searchPath.emplace_back(mediumResource.directory);
+        searchPath.push_back(mediumResource.directory);
         
         director->setContentScaleFactor(MIN(mediumResource.size.height/designResolutionSize.height, mediumResource.size.width/designResolutionSize.width));
     }
     // If the frame's height is smaller than the height of medium resource size, select small resource.
     else
     {
-        searchPath.emplace_back(smallResource.directory);
+        searchPath.push_back(smallResource.directory);
 
         director->setContentScaleFactor(MIN(smallResource.size.height/designResolutionSize.height, smallResource.size.width/designResolutionSize.width));
     }

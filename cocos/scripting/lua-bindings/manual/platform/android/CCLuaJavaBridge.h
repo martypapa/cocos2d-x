@@ -158,7 +158,7 @@ private:
             memset(&m_ret, 0, sizeof(m_ret));
         	m_valid = validateMethodSig() && getMethodInfo();
         }
-        ~CallInfo();
+    	~CallInfo();
 
         bool isValid() {
         	return m_valid;

@@ -23,7 +23,6 @@
  ****************************************************************************/
 
 #include "TerrainTest.h"
-#include <cmath>
 
 USING_NS_CC;
 
@@ -60,7 +59,7 @@ TerrainSimple::TerrainSimple()
     auto listener = EventListenerTouchAllAtOnce::create();
     listener->onTouchesMoved = CC_CALLBACK_2(TerrainSimple::onTouchesMoved, this);
     _eventDispatcher->addEventListenerWithSceneGraphPriority(listener, this);
-    // add Particle3D for test blend
+//     add Particle3D for test blend
     auto rootps = PUParticleSystem3D::create("Particle3D/scripts/mp_torch.pu");
     rootps->setCameraMask((unsigned short)CameraFlag::USER1);
     rootps->startParticleSystem();
@@ -139,7 +138,7 @@ TerrainWalkThru::TerrainWalkThru()
     _player->setCameraMask(2);
     _player->setScale(0.08f);
     _player->setPositionY(_terrain->getHeight(_player->getPositionX(),_player->getPositionZ())+PLAYER_HEIGHT);
-    
+
     // add Particle3D for test blend
     auto rootps = PUParticleSystem3D::create("Particle3D/scripts/mp_torch.pu");
     rootps->setCameraMask((unsigned short)CameraFlag::USER1);
@@ -197,7 +196,7 @@ void TerrainWalkThru::onTouchesEnd(const std::vector<cocos2d::Touch*>& touches, 
             dir = collisionPoint - _player->getPosition3D();
             dir.y = 0;
             dir.normalize();
-            _player->_headingAngle =  -1*std::acos(dir.dot(Vec3(0,0,-1)));
+            _player->_headingAngle =  -1*acos(dir.dot(Vec3(0,0,-1)));
             dir.cross(dir,Vec3(0,0,-1),&_player->_headingAxis);
             _player->_targetPos=collisionPoint;
             _player->forward();

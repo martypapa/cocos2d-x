@@ -24,15 +24,15 @@ local verticalAlignment = {
 
 local vAlignCount = table.getn(verticalAlignment)
 
-local function showFont(ret, pFont, index)
+local function showFont(ret, pFont)
 
     cclog("vAlignIdx="..vAlignIdx)
     local s = cc.Director:getInstance():getWinSize()
 
-    local blockSize = cc.size(s.width/3, 100)
+    local blockSize = cc.size(s.width/3, 200)
     local fontSize = 26
 
-    local top = cc.Label:createWithTTF(tostring(index) .. ". " ..pFont, pFont, 24)
+    local top = cc.Label:createWithTTF(pFont, pFont, 24)
     local left = cc.Label:createWithTTF("alignment left", pFont, fontSize,
                                    blockSize, cc.TEXT_ALIGNMENT_LEFT, verticalAlignment[vAlignIdx])
     local center = cc.Label:createWithTTF("alignment center", pFont, fontSize,
@@ -44,9 +44,9 @@ local function showFont(ret, pFont, index)
     local centerColor = cc.LayerColor:create(cc.c4b(200, 100, 100, 255), blockSize.width, blockSize.height)
     local rightColor = cc.LayerColor:create(cc.c4b(100, 100, 200, 255), blockSize.width, blockSize.height)
 
-    leftColor:ignoreAnchorPointForPosition(false)
-    centerColor:ignoreAnchorPointForPosition(false)
-    rightColor:ignoreAnchorPointForPosition(false)
+    leftColor:setIgnoreAnchorPointForPosition(false)
+    centerColor:setIgnoreAnchorPointForPosition(false)
+    rightColor:setIgnoreAnchorPointForPosition(false)
 
     top:setAnchorPoint(cc.p(0.5, 1))
     left:setAnchorPoint(cc.p(0,0.5))
@@ -85,7 +85,7 @@ local function createTestLayer()
     end
 
     local ret = originCreateLayer("")
-    showFont(ret, fontList[Helper.index], Helper.index)
+    showFont(ret, fontList[Helper.index])
     return ret
 end
 

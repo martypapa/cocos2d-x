@@ -37,12 +37,8 @@
 #include "audio/apple/AudioEngine-inl.h"
 #elif CC_TARGET_PLATFORM == CC_PLATFORM_WIN32
 #include "audio/win32/AudioEngine-win32.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_WINRT
-#include "audio/winrt/AudioEngine-winrt.h"
 #elif CC_TARGET_PLATFORM == CC_PLATFORM_LINUX
 #include "audio/linux/AudioEngine-linux.h"
-#elif CC_TARGET_PLATFORM == CC_PLATFORM_TIZEN
-#include "audio/tizen/AudioEngine-tizen.h"
 #endif
 
 #define TIME_DELAY_PRECISION 0.0001
@@ -139,9 +135,8 @@ private:
                 }
             }
 
-            if (task) {
+            if (task)
                 task();
-            }
         }
     }
 
@@ -530,7 +525,7 @@ AudioProfile* AudioEngine::getProfile(const std::string &name)
     }
 }
 
-void AudioEngine::preload(const std::string& filePath, const std::function<void(bool isSuccess)>& callback)
+void AudioEngine::preload(const std::string& filePath, std::function<void(bool isSuccess)> callback)
 {
     if (!isEnabled())
     {

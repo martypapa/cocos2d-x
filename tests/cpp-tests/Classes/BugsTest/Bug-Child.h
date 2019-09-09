@@ -61,8 +61,8 @@ public:
     CREATE_FUNC(BugCameraMask);
     
     virtual bool init() override;
-    
     virtual std::string title() const override { return "BugCameraMask";}
+    
     void switchSpriteFlag(cocos2d::Ref* sender);
     void updateSpriteMaskLabel();
     Node* _sprite;

@@ -28,7 +28,6 @@
 #include "3d/CCBillBoard.h"
 
 #include <algorithm>
-#include <cmath>
 #include "../testResource.h"
 
 USING_NS_CC;
@@ -125,7 +124,7 @@ BillBoardTest::BillBoardTest()
     auto s = Director::getInstance()->getWinSize();
     if (_camera == nullptr)
     {
-        _camera=Camera::createPerspective(60, (GLfloat)s.width/s.height, 1, 500);
+        _camera=Camera::createPerspective(60, (float)s.width/s.height, 1, 500);
         _camera->setCameraFlag(CameraFlag::USER1);
         _layerBillBoard->addChild(_camera);
     }
@@ -135,7 +134,7 @@ BillBoardTest::BillBoardTest()
     for (unsigned int i = 0; i < 4; ++i)
     {
         Layer *layer = Layer::create();
-        auto billboard = BillBoard::create(imgs[(unsigned int)(std::lround(CCRANDOM_0_1()))]);
+        auto billboard = BillBoard::create(imgs[(unsigned int)(CCRANDOM_0_1() * 1 + 0.5)]);
         billboard->setScale(0.5f);
         billboard->setPosition3D(Vec3(0.0f, 0.0f,  CCRANDOM_MINUS1_1() * 150.0f));
         billboard->setOpacity(CCRANDOM_0_1() * 128 + 128);
@@ -202,7 +201,7 @@ BillBoardTest::BillBoardTest()
     this->addChild(menu, 10);
     menuCallback_orientedPoint(nullptr);
     
-    schedule(schedule_selector(BillBoardTest::update));
+    schedule(CC_SCHEDULE_SELECTOR(BillBoardTest::update));
 }
 
 void BillBoardTest::menuCallback_orientedPoint(Ref* sender)
@@ -239,7 +238,7 @@ void BillBoardTest::addNewBillBoardWithCoords(Vec3 p)
     std::string imgs[3] = {"Images/Icon.png", "Images/r2.png"};
     for (unsigned int i = 0; i < 10; ++i)
     {
-        auto billboard = BillBoard::create(imgs[(unsigned int)(std::lround(CCRANDOM_0_1()))]);
+        auto billboard = BillBoard::create(imgs[(unsigned int)(CCRANDOM_0_1() * 1 + 0.5)]);
         billboard->setScale(0.5f);
         billboard->setPosition3D(Vec3(p.x, p.y, -150.0f + 30 * i));
         billboard->setOpacity(CCRANDOM_0_1() * 128 + 128);

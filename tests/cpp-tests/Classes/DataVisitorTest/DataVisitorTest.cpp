@@ -69,37 +69,38 @@ void PrettyPrinterDemo::onEnter()
     TestCase::onEnter();
     auto s = Director::getInstance()->getWinSize();
     
-    auto label = Label::createWithTTF(title(), "fonts/arial.ttf", 28);
+    auto label = Label::createWithTTF(title().c_str(), "fonts/arial.ttf", 28);
     label->setPosition(s.width/2, s.height * 4/5);
     this->addChild(label, 1);
     
     std::string strSubtitle = subtitle();
     if(strSubtitle.empty() == false)
     {
-        auto subLabel = Label::createWithTTF(strSubtitle, "fonts/Thonburi.ttf", 16);
+        auto subLabel = Label::createWithTTF(strSubtitle.c_str(), "fonts/Thonburi.ttf", 16);
         subLabel->setPosition(s.width/2, s.height * 3/5);
         this->addChild(subLabel, 1);
     }
     
     // Test code
-    PrettyPrinter visitor;
-    
-    // print dictionary
-    auto dict = __Dictionary::createWithContentsOfFile("animations/animations.plist");
-    dict->acceptVisitor(visitor);
-    log("%s", visitor.getResult().c_str());
-    log("-------------------------------");
-    
-    __Set myset;
-    for (int i = 0; i < 30; ++i) {
-        myset.addObject(__String::createWithFormat("str: %d", i));
-    }
-    visitor.clear();
-    myset.acceptVisitor(visitor);
-    log("%s", visitor.getResult().c_str());
-    log("-------------------------------");
-    
-    visitor.clear();
+    //TODO: minggo
+//    PrettyPrinter visitor;
+//
+//    // print dictionary
+//    auto dict = __Dictionary::createWithContentsOfFile("animations/animations.plist");
+//    dict->acceptVisitor(visitor);
+//    log("%s", visitor.getResult().c_str());
+//    log("-------------------------------");
+//
+//    __Set myset;
+//    for (int i = 0; i < 30; ++i) {
+//        myset.addObject(__String::createWithFormat("str: %d", i));
+//    }
+//    visitor.clear();
+//    myset.acceptVisitor(visitor);
+//    log("%s", visitor.getResult().c_str());
+//    log("-------------------------------");
+//
+//    visitor.clear();
     addSprite();
 //    dict = Director::getInstance()->getTextureCache()->snapshotTextures();
 //    dict->acceptVisitor(visitor);

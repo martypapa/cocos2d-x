@@ -81,7 +81,7 @@ bool UIPageViewTest::init()
         PageView* pageView = PageView::create();
         pageView->setDirection(PageView::Direction::HORIZONTAL);
         pageView->setContentSize(size);
-        const Size& backgroundSize = background->getContentSize();
+        Size backgroundSize = background->getContentSize();
         pageView->setPosition((widgetSize - pageView->getContentSize()) / 2.0f);
         pageView->removeAllItems();
         pageView->setIndicatorEnabled(true);
@@ -109,8 +109,8 @@ bool UIPageViewTest::init()
         
         pageView->removeItem(0);
         pageView->scrollToItem(pageCount - 2);
-        //This method is deprecated, we used here only testing purpose
-        pageView->addEventListenerPageView(this, pagevieweventselector(UIPageViewTest::pageViewEvent));
+        
+        cocos2d::log("TODO in %s %s %d", __FILE__, __FUNCTION__, __LINE__);
         
         pageView->setIndicatorIndexNodesOpacity(255);
         
@@ -121,11 +121,11 @@ bool UIPageViewTest::init()
     return false;
 }
 
-void UIPageViewTest::pageViewEvent(Ref *pSender, PageViewEventType type)
+void UIPageViewTest::pageViewEvent(Ref *pSender, PageView::EventType type)
 {
     switch (type)
     {
-        case PAGEVIEW_EVENT_TURNING:
+        case PageView::EventType::TURNING:
         {
             PageView* pageView = dynamic_cast<PageView*>(pSender);
             
@@ -290,7 +290,7 @@ bool UIPageViewTouchPropagationTest::init()
         PageView* pageView = PageView::create();
         pageView->setContentSize(Size(240.0f, 130.0f));
         pageView->setAnchorPoint(Vec2(0.5,0.5));
-        const Size& backgroundSize = background->getContentSize();
+        Size backgroundSize = background->getContentSize();
         pageView->setPosition(Vec2(widgetSize.width / 2.0f ,widgetSize.height / 2.0f));
         pageView->setBackGroundColor(Color3B::GREEN);
         pageView->setBackGroundColorType(Layout::BackGroundColorType::SOLID);
@@ -487,7 +487,7 @@ bool UIPageViewDynamicAddAndRemoveTest::init()
         pageView->setDirection(ui::PageView::Direction::VERTICAL);
         pageView->setContentSize(Size(240.0f, 130.0f));
         pageView->setAnchorPoint(Vec2(0.5,0.5));
-        const Size& backgroundSize = background->getContentSize();
+        Size backgroundSize = background->getContentSize();
         pageView->setPosition(Vec2(widgetSize.width / 2.0f ,widgetSize.height / 2.0f));
         pageView->setBackGroundColor(Color3B::GREEN);
         pageView->setBackGroundColorType(Layout::BackGroundColorType::SOLID);
@@ -571,7 +571,7 @@ bool UIPageViewDynamicAddAndRemoveTest::init()
         button2->setTitleColor(Color3B::RED);
         button2->addClickEventListener([=](Ref* sender)
         {
-            if (!pageView->getItems().empty())
+            if (pageView->getItems().size() > 0)
             {
                 pageView->removeItem(pageView->getItems().size()-1);
             }
@@ -784,7 +784,7 @@ bool UIPageViewVerticalTest::init()
         pageView->setIndicatorEnabled(true);
         pageView->setDirection(ui::PageView::Direction::VERTICAL);
         pageView->setContentSize(Size(240.0f, 130.0f));
-        const Size& backgroundSize = background->getContentSize();
+        Size backgroundSize = background->getContentSize();
         pageView->setPosition((widgetSize - pageView->getContentSize()) / 2.0f);
         pageView->removeAllItems();
         
@@ -948,7 +948,7 @@ bool UIPageViewChildSizeTest::init()
         PageView* pageView = PageView::create();
         pageView->setDirection(PageView::Direction::HORIZONTAL);
         pageView->setContentSize(size);
-        const Size& backgroundSize = background->getContentSize();
+        Size backgroundSize = background->getContentSize();
         pageView->setPosition((widgetSize - pageView->getContentSize()) / 2.0f);
         pageView->removeAllItems();
         pageView->setIndicatorEnabled(true);

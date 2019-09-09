@@ -37,10 +37,7 @@ SpritePolygonTest::SpritePolygonTest()
     ADD_TEST_CASE(SpritePolygonTest5);
     ADD_TEST_CASE(SpritePolygonPerformanceTestDynamic);
     ADD_TEST_CASE(SpritePerformanceTestDynamic);
-    // FIXME: Tizen will crash with this example
-#if (CC_TARGET_PLATFORM != CC_PLATFORM_TIZEN)
     ADD_TEST_CASE(SpritePolygonTestNoCrash);
-#endif
     ADD_TEST_CASE(SpritePolygonTestTPIsland);
     ADD_TEST_CASE(SpritePolygonTestAutoPolyIsland);
     ADD_TEST_CASE(SpritePolygonTestFrameAnim);
@@ -110,7 +107,7 @@ bool SpritePolygonTestCase::init()
 
 void SpritePolygonTestCase::updateDrawNode()
 {
-    if (_isDebugDraw && !_drawNodes.empty()) {
+    if (_isDebugDraw && _drawNodes.size() > 0) {
         for (int i = 0; i < _drawNodes.size(); i++)
         {
                 auto drawnode = _drawNodes.at(i);
@@ -328,7 +325,7 @@ void SpritePolygonTestSlider::changeEpsilon(cocos2d::Ref *pSender, cocos2d::ui::
         float epsilon = powf(slider->getPercent()/100.0,2)*19.0f + 1.0f;
         for(auto child : _children)
         {
-            if(!child->getName().empty())
+            if(child->getName().size())
             {
                 Sprite *sp = (Sprite*)child;
                 auto file = sp->getName();
@@ -345,7 +342,7 @@ void SpritePolygonTestSlider::changeEpsilon(cocos2d::Ref *pSender, cocos2d::ui::
 void SpritePolygonTestSlider::updateLabel(const cocos2d::Sprite *sp, const PolygonInfo &pinfo)
 {
     Label *label = (Label*)(sp->getChildByName(sp->getName()));
-    const auto& filename = sp->getName();
+    auto filename = sp->getName();
     auto size = pinfo.getRect().size/Director::getInstance()->getContentScaleFactor();
     label->setString(filename+"\nVerts: "+Value((int)pinfo.getVertCount()).asString()+ "\nPixels: "+Value((int)(pinfo.getArea()/(size.width*size.height)*100)).asString()+"%");
 }

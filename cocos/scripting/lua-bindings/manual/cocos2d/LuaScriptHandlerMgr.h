@@ -152,7 +152,7 @@ public:
         WEBSOCKET_CLOSE,
         WEBSOCKET_ERROR,
         
-        GL_NODE_DRAW,
+        LUANODE_DRAW,
         
         SCROLLVIEW_SCROLL,
         SCROLLVIEW_ZOOM,
@@ -235,7 +235,7 @@ public:
      * @lua NA
      * @js NA
      */
-    ScriptHandlerMgr();
+    ScriptHandlerMgr(void);
     
     /**
      * Destructor.
@@ -243,7 +243,7 @@ public:
      * @lua NA
      * @js NA
      */
-    virtual ~ScriptHandlerMgr();
+    virtual ~ScriptHandlerMgr(void);
     
     /**
      * Get the instance of the ScriptHandlerMgr.
@@ -251,7 +251,7 @@ public:
      * @return the instance of the ScriptHandlerMgr.
      * @js NA
      */
-    static ScriptHandlerMgr* getInstance();
+    static ScriptHandlerMgr* getInstance(void);
     
     /**
      * Destroy the instance of the ScriptHandlerMgr.
@@ -259,7 +259,7 @@ public:
      * @lua NA
      * @js NA
      */
-    static void destroyInstance();
+    static void destroyInstance(void);
     
     /**
      * Construct or update the mapping relationship among c++ Ref object ,HandlerType and the reference index corresponding to the pointer of Lua function.
@@ -318,7 +318,7 @@ public:
     ScriptHandlerMgr::HandlerType addCustomHandler(void* object, int handler);
     
 private:
-    void init();
+    void init(void);
     static ScriptHandlerMgr* _scriptHandlerMgr;
     MapObjectHandlers _mapObjectHandlers;
 };

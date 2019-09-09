@@ -115,7 +115,7 @@ static int lua_cocos2dx_ArmatureAnimation_setMovementEventCallFunc(lua_State* L)
             
             if (0 != handler)
             {
-                const std::string& strMovementID = movementID;
+                std::string strMovementID = movementID;
                 LuaArmatureMovementEventData movementData(armature,(int)movementType, strMovementID);
                 
                 LuaArmatureWrapperEventData wrapperData(LuaArmatureWrapperEventData::LuaArmatureWrapperEventType::MOVEMENT_EVENT , (void*)&movementData);
@@ -185,7 +185,7 @@ static int lua_cocos2dx_ArmatureAnimation_setFrameEventCallFunc(lua_State* L)
             
             if (0 != handler)
             {
-                const std::string& strFrameEventName(frameEventName);
+                std::string strFrameEventName(frameEventName);
                 
                 LuaArmatureFrameEventData frameData(bone,frameEventName,originFrameIndex,currentFrameIndex);
                 
@@ -262,7 +262,7 @@ static int lua_cocos2dx_ArmatureDataManager_addArmatureFileInfoAsyncCallFunc(lua
         
         ScriptHandlerMgr::getInstance()->addObjectHandler((void*)wrapper, handler, ScriptHandlerMgr::HandlerType::ARMATURE_EVENT);
         
-        self->addArmatureFileInfoAsync(configFilePath, wrapper, schedule_selector(LuaArmatureWrapper::addArmatureFileInfoAsyncCallback));
+        self->addArmatureFileInfoAsync(configFilePath, wrapper, CC_SCHEDULE_SELECTOR(LuaArmatureWrapper::addArmatureFileInfoAsyncCallback));
         
         return 0;
     }
@@ -288,7 +288,7 @@ static int lua_cocos2dx_ArmatureDataManager_addArmatureFileInfoAsyncCallFunc(lua
         
         ScriptHandlerMgr::getInstance()->addObjectHandler((void*)wrapper, handler, ScriptHandlerMgr::HandlerType::ARMATURE_EVENT);
         
-        self->addArmatureFileInfoAsync(imagePath, plistPath,configFilePath,wrapper, schedule_selector(LuaArmatureWrapper::addArmatureFileInfoAsyncCallback));
+        self->addArmatureFileInfoAsync(imagePath, plistPath,configFilePath,wrapper, CC_SCHEDULE_SELECTOR(LuaArmatureWrapper::addArmatureFileInfoAsyncCallback));
         
         return 0;
     }

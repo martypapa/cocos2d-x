@@ -523,7 +523,7 @@ ZipFile *ZipFile::createWithBuffer(const void* buffer, uLong size)
     if (zip && zip->initWithBuffer(buffer, size)) {
         return zip;
     } else {
-        delete zip;
+        if (zip) delete zip;
         return nullptr;
     }
 }

@@ -356,7 +356,7 @@ void RemoveListenerWhenDispatching::onEnter()
         }
     }, MenuItemFont::create("Enabled"), MenuItemFont::create("Disabled"), nullptr);
     
-    toggleItem->setPosition(origin + Vec2(size.width * 0.8, 80));
+    toggleItem->setPosition(origin + Vec2(size.width/2, 80));
     auto menu = Menu::create(toggleItem, nullptr);
     menu->setPosition(Vec2(0, 0));
     menu->setAnchorPoint(Vec2(0, 0));
@@ -392,7 +392,7 @@ void CustomEventTest::onEnter()
         char* buf = static_cast<char*>(event->getUserData());
         str += buf;
         str += " times";
-        statusLabel->setString(str);
+        statusLabel->setString(str.c_str());
     });
     
     _eventDispatcher->addEventListenerWithFixedPriority(_listener, 1);
@@ -418,7 +418,7 @@ void CustomEventTest::onEnter()
         char* buf = static_cast<char*>(event->getUserData());
         str += buf;
         str += " times";
-        statusLabel2->setString(str);
+        statusLabel2->setString(str.c_str());
     });
     
     _eventDispatcher->addEventListenerWithFixedPriority(_listener2, 1);
@@ -650,7 +650,7 @@ void RemoveListenerAfterAddingTest::onEnter()
         _eventDispatcher->removeEventListener(listener);
     });
 
-    item1->setPosition(VisibleRect::leftBottom() + Vec2(0, 80));
+    item1->setPosition(VisibleRect::center() + Vec2(0, 80));
     
     auto addNextButton = [this](){
         auto next = MenuItemFont::create("Please Click Me To Reset!", [this](Ref* sender){
@@ -677,7 +677,7 @@ void RemoveListenerAfterAddingTest::onEnter()
         addNextButton();
     });
     
-    item2->setPosition(VisibleRect::leftBottom() + Vec2(0, 40));
+    item2->setPosition(VisibleRect::center() + Vec2(0, 40));
     
     auto item3 = MenuItemFont::create("Click Me 3", [=](Ref* sender){
         auto listener = EventListenerTouchOneByOne::create();
@@ -692,10 +692,10 @@ void RemoveListenerAfterAddingTest::onEnter()
         addNextButton();
     });
     
-    item3->setPosition(VisibleRect::leftBottom());
+    item3->setPosition(VisibleRect::center());
     
     auto menu = Menu::create(item1, item2, item3, nullptr);
-    menu->setPosition(VisibleRect::rightBottom() * 0.8 + Vec2(0, 40));
+    menu->setPosition(VisibleRect::leftBottom());
     menu->setAnchorPoint(Vec2::ZERO);
 
     addChild(menu);
@@ -987,6 +987,7 @@ StopPropagationTest::StopPropagationTest()
     auto keyboardEventListener = EventListenerKeyboard::create();
     keyboardEventListener->onKeyPressed = [](EventKeyboard::KeyCode /*key*/, Event* event){
         auto target = static_cast<Sprite*>(event->getCurrentTarget());
+        CC_UNUSED_PARAM(target);
         CCASSERT(target->getTag() == TAG_BLUE_SPRITE || target->getTag() == TAG_BLUE_SPRITE2, "Yellow blocks shouldn't response event.");
         // Stop propagation, so yellow blocks will not be able to receive event.
         event->stopPropagation();

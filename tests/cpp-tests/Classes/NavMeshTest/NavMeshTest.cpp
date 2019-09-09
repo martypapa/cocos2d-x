@@ -46,13 +46,13 @@ NavMeshTests::NavMeshTests()
     ADD_TEST_CASE(NavMeshBasicTestDemo);
     ADD_TEST_CASE(NavMeshAdvanceTestDemo);
 #endif
-}
+};
 
 #if ( CC_USE_NAVMESH == 0 ) || ( CC_USE_PHYSICS == 0 )
 void NavMeshDisabled::onEnter()
 {
     TTFConfig ttfConfig("fonts/arial.ttf", 16);
-    auto label = Label::createWithTTF(ttfConfig, "Should define CC_USE_NAVMESH\n to run this test case");
+    auto label = Label::createWithTTF(ttfConfig, "Should define CC_USE_NAVMESH & CC_USE_PHYSICS\n to run this test case");
     
     auto size = Director::getInstance()->getWinSize();
     label->setPosition(Vec2(size.width / 2, size.height / 2));
@@ -115,7 +115,7 @@ void NavMeshBaseTestDemo::onTouchesBegan(const std::vector<cocos2d::Touch*>& tou
 
 void NavMeshBaseTestDemo::onTouchesMoved(const std::vector<cocos2d::Touch*>& touches, cocos2d::Event *event)
 {
-    if (!touches.empty() && _camera)
+    if (touches.size() && _camera)
     {
         auto touch = touches[0];
         auto delta = touch->getDelta();
@@ -198,7 +198,7 @@ void NavMeshBaseTestDemo::createAgent(const Vec3 &pos)
         animate->setSpeed(0);
     }
 
-    _agents.emplace_back(agent, animate);
+    _agents.push_back(std::make_pair(agent, animate));
 }
 
 void NavMeshBaseTestDemo::createObstacle(const Vec3 &pos)

@@ -24,9 +24,9 @@
  ****************************************************************************/
 
 #include "NewRendererTest.h"
-
+#include <chrono>
+#include <sstream>
 USING_NS_CC;
-
 
 class DurationRecorder {
 public:
@@ -60,11 +60,13 @@ private:
 };
 
 
+
 NewRendererTests::NewRendererTests()
 {
+
     ADD_TEST_CASE(NewSpriteTest);
     ADD_TEST_CASE(GroupCommandTest);
-    ADD_TEST_CASE(NewClippingNodeTest);
+//    ADD_TEST_CASE(NewClippingNodeTest); // When depth and stencil are used together, ...
     ADD_TEST_CASE(NewDrawNodeTest);
     ADD_TEST_CASE(NewCullingTest);
     ADD_TEST_CASE(VBOFullTest);
@@ -72,11 +74,11 @@ NewRendererTests::NewRendererTests()
     ADD_TEST_CASE(CaptureNodeTest);
     ADD_TEST_CASE(BugAutoCulling);
     ADD_TEST_CASE(RendererBatchQuadTri);
-    ADD_TEST_CASE(RendererUniformBatch);
+    ADD_TEST_CASE(RendererUniformBatch); 
     ADD_TEST_CASE(RendererUniformBatch2);
     ADD_TEST_CASE(SpriteCreation);
     ADD_TEST_CASE(NonBatchSprites);
-}
+};
 
 std::string MultiSceneTest::title() const
 {
@@ -416,515 +418,6 @@ std::string NewCullingTest::subtitle() const
     return "Drag the layer to test the result of culling";
 }
 
-VBOFullTest::VBOFullTest()
-{
-    Size s = Director::getInstance()->getWinSize();
-    Node* parent = Node::create();
-    parent->setPosition(0,0);
-    addChild(parent);
-    
-    for (int i=0; i< Renderer::VBO_SIZE / 3.9; ++i)
-    {
-        Sprite* sprite = Sprite::create("Images/grossini_dance_01.png");
-        sprite->setScale(0.1f, 0.1f);
-        float x = ((float)std::rand()) /RAND_MAX;
-        float y = ((float)std::rand()) /RAND_MAX;
-        sprite->setPosition(Vec2(x * s.width, y * s.height));
-        parent->addChild(sprite);
-    }
-}
-
-VBOFullTest::~VBOFullTest()
-{
-    
-}
-
-std::string VBOFullTest::title() const
-{
-    return "New Renderer";
-}
-
-std::string VBOFullTest::subtitle() const
-{
-    return "VBO full Test, everything should render normally";
-}
-
-CaptureScreenTest::CaptureScreenTest()
-{
-    Size s = Director::getInstance()->getWinSize();
-    Vec2 left(s.width / 4, s.height / 2);
-    Vec2 right(s.width / 4 * 3, s.height / 2);
-	
-    auto sp1 = Sprite::create("Images/grossini.png");
-    sp1->setPosition(left);
-    auto move1 = MoveBy::create(1, Vec2(s.width/2, 0));
-    auto seq1 = RepeatForever::create(Sequence::create(move1, move1->reverse(), nullptr));
-    addChild(sp1);
-    sp1->runAction(seq1);
-    auto sp2 = Sprite::create("Images/grossinis_sister1.png");
-    sp2->setPosition(right);
-    auto move2 = MoveBy::create(1, Vec2(-s.width/2, 0));
-    auto seq2 = RepeatForever::create(Sequence::create(move2, move2->reverse(), nullptr));
-    addChild(sp2);
-    sp2->runAction(seq2);
-
-    auto label1 = Label::createWithTTF(TTFConfig("fonts/arial.ttf"), "capture all");
-    auto mi1 = MenuItemLabel::create(label1, CC_CALLBACK_1(CaptureScreenTest::onCaptured, this));
-    auto menu = Menu::create(mi1, nullptr);
-    addChild(menu);
-    menu->setPosition(s.width / 2, s.height / 4);
-
-    _filename = "";
-}
-
-CaptureScreenTest::~CaptureScreenTest()
-{
-    Director::getInstance()->getTextureCache()->removeTextureForKey(_filename);
-}
-
-std::string CaptureScreenTest::title() const
-{
-    return "New Renderer";
-}
-
-std::string CaptureScreenTest::subtitle() const
-{
-    return "Capture screen test, press the menu items to capture the screen";
-}
-
-void CaptureScreenTest::onCaptured(Ref*)
-{
-    Director::getInstance()->getTextureCache()->removeTextureForKey(_filename);
-    removeChildByTag(childTag);
-    _filename = "CaptureScreenTest.png";
-    // retain it to avoid crash caused by invoking afterCaptured 
-    this->retain();
-    utils::captureScreen(CC_CALLBACK_2(CaptureScreenTest::afterCaptured, this), _filename);
-}
-
-void CaptureScreenTest::afterCaptured(bool succeed, const std::string& outputFile)
-{
-    if (succeed)
-    {
-        auto sp = Sprite::create(outputFile);
-        addChild(sp, 0, childTag);
-        Size s = Director::getInstance()->getWinSize();
-        sp->setPosition(s.width / 2, s.height / 2);
-        sp->setScale(0.25);
-        _filename = outputFile;
-    }
-    else
-    {
-        log("Capture screen failed.");
-    }
-
-    // release it since it is retained in `CaptureScreenTest::onCaptured()`
-    this->release();
-}
-
-CaptureNodeTest::CaptureNodeTest()
-{
-    Size s = Director::getInstance()->getWinSize();
-    Vec2 left(s.width / 4, s.height / 2);
-    Vec2 right(s.width / 4 * 3, s.height / 2);
-
-    auto sp1 = Sprite::create("Images/grossini.png");
-    sp1->setPosition(left);
-    auto move1 = MoveBy::create(1, Vec2(s.width / 2, 0));
-    auto seq1 = RepeatForever::create(Sequence::create(move1, move1->reverse(), nullptr));
-    addChild(sp1);
-    sp1->runAction(seq1);
-    auto sp2 = Sprite::create("Images/grossinis_sister1.png");
-    sp2->setPosition(right);
-    auto move2 = MoveBy::create(1, Vec2(-s.width / 2, 0));
-    auto seq2 = RepeatForever::create(Sequence::create(move2, move2->reverse(), nullptr));
-    addChild(sp2);
-    sp2->runAction(seq2);
-
-    auto label1 = Label::createWithTTF(TTFConfig("fonts/arial.ttf"), "capture this scene");
-    auto mi1 = MenuItemLabel::create(label1, CC_CALLBACK_1(CaptureNodeTest::onCaptured, this));
-    auto menu = Menu::create(mi1, nullptr);
-    addChild(menu);
-    menu->setPosition(s.width / 2, s.height / 4);
-
-    _filename = "";
-}
-
-CaptureNodeTest::~CaptureNodeTest()
-{
-    Director::getInstance()->getTextureCache()->removeTextureForKey(_filename);
-}
-
-std::string CaptureNodeTest::title() const
-{
-    return "New Renderer";
-}
-
-std::string CaptureNodeTest::subtitle() const
-{
-    return "Capture node test, press the menu items to capture this scene with scale 0.5";
-}
-
-void CaptureNodeTest::onCaptured(Ref*)
-{ 
-    Director::getInstance()->getTextureCache()->removeTextureForKey(_filename);
-    removeChildByTag(childTag);
-    
-    _filename = FileUtils::getInstance()->getWritablePath() + "/CaptureNodeTest.png";
-
-    // capture this
-    auto image = utils::captureNode(this, 0.5);
-
-    // create a sprite with the captured image directly
-    auto sp = Sprite::createWithTexture(Director::getInstance()->getTextureCache()->addImage(image, _filename));
-    addChild(sp, 0, childTag);
-    Size s = Director::getInstance()->getWinSize();
-    sp->setPosition(s.width / 2, s.height / 2);
-
-    // store to disk
-    image->saveToFile(_filename);
-
-    // release the captured image
-    image->release();
-}
-
-BugAutoCulling::BugAutoCulling()
-{
-    Size s = Director::getInstance()->getWinSize();
-    auto fastmap = cocos2d::experimental::TMXTiledMap::create("TileMaps/orthogonal-test2.tmx");
-    this->addChild(fastmap);
-    for (int i = 0; i < 30; i++) {
-        auto sprite = Sprite::create("Images/grossini.png");
-        sprite->setPosition(s.width/2 + s.width/10 * i, s.height/2);
-        this->addChild(sprite);
-        auto label = Label::createWithTTF(TTFConfig("fonts/arial.ttf"), "Label");
-        label->setPosition(s.width/2 + s.width/10 * i, s.height/2);
-        this->addChild(label);
-    }
-    this->scheduleOnce([=](float){
-        auto camera = Director::getInstance()->getRunningScene()->getCameras().front();
-        auto move  = MoveBy::create(2.0, Vec2(2 * s.width, 0));
-        camera->runAction(Sequence::create(move, move->reverse(),nullptr));
-    }, 1.0f, "lambda-autoculling-bug");
-}
-
-std::string BugAutoCulling::title() const
-{
-    return "Bug-AutoCulling";
-}
-
-std::string BugAutoCulling::subtitle() const
-{
-    return "Moving the camera to the right instead of moving the layer";
-}
-
-//
-// RendererBatchQuadTri
-//
-
-RendererBatchQuadTri::RendererBatchQuadTri()
-{
-    Size s = Director::getInstance()->getWinSize();
-
-    for (int i=0; i<250; i++)
-    {
-        int x = CCRANDOM_0_1() * s.width;
-        int y = CCRANDOM_0_1() * s.height;
-
-        auto label = LabelAtlas::create("This is a label", "fonts/tuffy_bold_italic-charmap.plist");
-        label->setColor(Color3B::RED);
-        label->setPosition(Vec2(x,y));
-        addChild(label);
-
-        auto sprite = Sprite::create("fonts/tuffy_bold_italic-charmap.png");
-        sprite->setTextureRect(Rect(0,0,100,100));
-        sprite->setPosition(Vec2(x,y));
-        sprite->setColor(Color3B::BLUE);
-        addChild(sprite);
-    }
-}
-
-std::string RendererBatchQuadTri::title() const
-{
-    return "RendererBatchQuadTri";
-}
-
-std::string RendererBatchQuadTri::subtitle() const
-{
-    return "QuadCommand and TriangleCommands are batched together";
-}
-
-
-//
-//
-// RendererUniformBatch
-//
-
-RendererUniformBatch::RendererUniformBatch()
-{
-    Size s = Director::getInstance()->getWinSize();
-
-    auto glBlurState = createBlurGLProgramState();
-    auto glSepiaState = createSepiaGLProgramState();
-
-    auto x_inc = s.width / 20;
-    auto y_inc = s.height / 6;
-
-    for (int y=0; y<6; ++y)
-    {
-        for (int x=0; x<20; ++x)
-        {
-            auto sprite = Sprite::create("Images/grossini.png");
-            sprite->setPosition(Vec2(x * x_inc, y * y_inc));
-            sprite->setScale(0.4);
-            addChild(sprite);
-
-            if (y>=4) {
-                sprite->setGLProgramState(glSepiaState);
-            } else if(y>=2) {
-                sprite->setGLProgramState(glBlurState);
-            }
-        }
-    }
-}
-
-GLProgramState* RendererUniformBatch::createBlurGLProgramState()
-{
-#if (CC_TARGET_PLATFORM != CC_PLATFORM_WINRT)
-    const std::string shaderName("Shaders/example_Blur.fsh");
-#else
-    const std::string shaderName("Shaders/example_Blur_winrt.fsh");
-#endif
-    // outline shader
-    auto fileUtiles = FileUtils::getInstance();
-    auto fragmentFullPath = fileUtiles->fullPathForFilename(shaderName);
-    auto fragSource = fileUtiles->getStringFromFile(fragmentFullPath);
-    auto glprogram = GLProgram::createWithByteArrays(ccPositionTextureColor_noMVP_vert, fragSource.c_str());
-    auto glprogramstate = (glprogram == nullptr ? nullptr : GLProgramState::getOrCreateWithGLProgram(glprogram));
-
-    glprogramstate->setUniformVec2("resolution", Vec2(85,121));
-#if (CC_TARGET_PLATFORM != CC_PLATFORM_WINRT)
-    glprogramstate->setUniformFloat("blurRadius", 10);
-    glprogramstate->setUniformFloat("sampleNum", 5);
-#endif
-
-    return glprogramstate;
-}
-
-GLProgramState* RendererUniformBatch::createSepiaGLProgramState()
-{
-    const std::string shaderName("Shaders/example_Sepia.fsh");
-
-    // outline shader
-    auto fileUtiles = FileUtils::getInstance();
-    auto fragmentFullPath = fileUtiles->fullPathForFilename(shaderName);
-    auto fragSource = fileUtiles->getStringFromFile(fragmentFullPath);
-    auto glprogram = GLProgram::createWithByteArrays(ccPositionTextureColor_noMVP_vert, fragSource.c_str());
-    auto glprogramstate = (glprogram == nullptr ? nullptr : GLProgramState::getOrCreateWithGLProgram(glprogram));
-
-    return glprogramstate;
-}
-
-std::string RendererUniformBatch::title() const
-{
-    return "RendererUniformBatch";
-}
-
-std::string RendererUniformBatch::subtitle() const
-{
-    return "Only 9 draw calls should appear";
-}
-
-
-//
-// RendererUniformBatch2
-//
-
-RendererUniformBatch2::RendererUniformBatch2()
-{
-    Size s = Director::getInstance()->getWinSize();
-
-    auto glBlurState = createBlurGLProgramState();
-    auto glSepiaState = createSepiaGLProgramState();
-
-    auto x_inc = s.width / 20;
-    auto y_inc = s.height / 6;
-
-    for (int y=0; y<6; ++y)
-    {
-        for (int x=0; x<20; ++x)
-        {
-            auto sprite = Sprite::create("Images/grossini.png");
-            sprite->setPosition(Vec2(x * x_inc, y * y_inc));
-            sprite->setScale(0.4);
-            addChild(sprite);
-
-            auto r = CCRANDOM_0_1();
-            if (r < 0.33)
-                sprite->setGLProgramState(glSepiaState);
-            else if (r < 0.66)
-                sprite->setGLProgramState(glBlurState);
-        }
-    }
-}
-
-GLProgramState* RendererUniformBatch2::createBlurGLProgramState()
-{
-#if (CC_TARGET_PLATFORM != CC_PLATFORM_WINRT)
-    const std::string shaderName("Shaders/example_Blur.fsh");
-#else
-    const std::string shaderName("Shaders/example_Blur_winrt.fsh");
-#endif
-    // outline shader
-    auto fileUtiles = FileUtils::getInstance();
-    auto fragmentFullPath = fileUtiles->fullPathForFilename(shaderName);
-    auto fragSource = fileUtiles->getStringFromFile(fragmentFullPath);
-    auto glprogram = GLProgram::createWithByteArrays(ccPositionTextureColor_noMVP_vert, fragSource.c_str());
-    auto glprogramstate = (glprogram == nullptr ? nullptr : GLProgramState::getOrCreateWithGLProgram(glprogram));
-
-    glprogramstate->setUniformVec2("resolution", Vec2(85,121));
-#if (CC_TARGET_PLATFORM != CC_PLATFORM_WINRT)
-    glprogramstate->setUniformFloat("blurRadius", 10);
-    glprogramstate->setUniformFloat("sampleNum", 5);
-#endif
-
-    return glprogramstate;
-}
-
-GLProgramState* RendererUniformBatch2::createSepiaGLProgramState()
-{
-    const std::string shaderName("Shaders/example_Sepia.fsh");
-
-    // outline shader
-    auto fileUtiles = FileUtils::getInstance();
-    auto fragmentFullPath = fileUtiles->fullPathForFilename(shaderName);
-    auto fragSource = fileUtiles->getStringFromFile(fragmentFullPath);
-    auto glprogram = GLProgram::createWithByteArrays(ccPositionTextureColor_noMVP_vert, fragSource.c_str());
-    auto glprogramstate = (glprogram == nullptr ? nullptr : GLProgramState::getOrCreateWithGLProgram(glprogram));
-
-    return glprogramstate;
-}
-
-std::string RendererUniformBatch2::title() const
-{
-    return "RendererUniformBatch 2";
-}
-
-std::string RendererUniformBatch2::subtitle() const
-{
-    return "Mixing different shader states should work ok";
-}
-
-
-NonBatchSprites::NonBatchSprites()
-{
-    Size s = Director::getInstance()->getWinSize();
-    _spritesAnchor = Node::create();
-    _spritesAnchor->setPosition(0, 0);
-    addChild(_spritesAnchor);
-
-
-    _totalSprites = Label::createWithTTF(TTFConfig("fonts/arial.ttf"), "sprites");
-    _totalSprites->setColor(Color3B::YELLOW);
-    _totalSprites->enableOutline(Color4B::RED, 2);
-    _totalSprites->setPosition(s.width/2, s.height/2);
-
-    addChild(_totalSprites);
-
-    scheduleUpdate();
-}
-
-void NonBatchSprites::createSprite()
-{
-
-    Size s = Director::getInstance()->getWinSize();
-    Sprite* sprite = nullptr;
-    if (_spriteIndex % 2 == 0)
-    {
-        sprite = Sprite::create("Images/grossini_dance_05.png");
-    }
-    else
-    {
-        sprite = Sprite::create("Images/grossini_dance_01.png");
-    }
-
-    if (!sprite) return;
-    auto r = rand_0_1() * 0.6 + 0.2;
-    sprite->setScale(r, r);
-    float x = ((float)std::rand()) / RAND_MAX;
-    float y = ((float)std::rand()) / RAND_MAX;
-    sprite->runAction(RepeatForever::create(RotateBy::create(1, 45)));
-
-    sprite->setPosition(Vec2(x * s.width, y * s.height));
-    _spritesAnchor->addChild(sprite);
-
-    _spriteIndex++;
-    std::stringstream ss;
-    ss << _spriteIndex << " sprites";
-    _totalSprites->setString(ss.str());
-}
-
-void NonBatchSprites::update(float dt)
-{
-    
-    if( dt <= 1.0f / 28.0f && dt >= 1.0f/ 31.0f)
-    {
-        _around30fps.hit();
-    }
-    else
-    {
-        _around30fps.cancel();
-    }
-    
-    _maDt = 0.7f * _maDt  + 0.3f * dt;
-    _rmaDt = 0.5f * _rmaDt  + 0.5f * dt;
-    if(_maDt <= DEST_DT_30FPS) {
-        _contSlow.cancel();
-        _contFast.hit();
-        if(_contFast.ok()){
-            auto t2 = DEST_DT_30FPS - _rmaDt;
-            auto delta = (int)(t2 / _rmaDt * _spriteIndex * 0.1);
-            delta =std::min(20, std::max(1, delta));
-            for(int i =0 ;i< delta; i++) {
-                createSprite();
-            }
-        }
-    }else{
-        _contSlow.hit();
-        _contFast.cancel();
-    }
-
-    if(_contSlow.ok() || _around30fps.ok())
-    {
-        unscheduleUpdate();
-        std::stringstream ss;
-        ss << _spriteIndex << " sprites, DONE!";
-        _totalSprites->setString(ss.str());
-        _totalSprites->setScale(1.2);
-    }
-}
-
-NonBatchSprites::~NonBatchSprites()
-{
-
-}
-
-std::string NonBatchSprites::title() const
-{
-    return "Non Batched Sprites";
-}
-
-std::string NonBatchSprites::subtitle() const
-{
-#if defined(COCOS2D_DEBUG) && COCOS2D_DEBUG == 1
-    return "DEBUG: simulate lots of sprites, drop to 30 fps";
-#else
-    return "RELEASE: simulate lots of sprites, drop to 30 fps";
-#endif
-}
-
-
-
 SpriteCreation::SpriteCreation()
 {
 
@@ -1085,4 +578,517 @@ std::string SpriteCreation::subtitle() const
 #endif
 }
 
+
+VBOFullTest::VBOFullTest()
+{
+    Size s = Director::getInstance()->getWinSize();
+    Node* parent = Node::create();
+    parent->setPosition(0,0);
+    addChild(parent);
+    
+    for (int i=0; i< Renderer::VBO_SIZE / 3.9; ++i)
+    {
+        Sprite* sprite = Sprite::create("Images/grossini_dance_01.png");
+        sprite->setScale(0.1f, 0.1f);
+        float x = ((float)std::rand()) /RAND_MAX;
+        float y = ((float)std::rand()) /RAND_MAX;
+        sprite->setPosition(Vec2(x * s.width, y * s.height));
+        parent->addChild(sprite);
+    }
+}
+
+VBOFullTest::~VBOFullTest()
+{
+    
+}
+
+std::string VBOFullTest::title() const
+{
+    return "New Renderer";
+}
+
+std::string VBOFullTest::subtitle() const
+{
+    return "VBO full Test, everything should render normally";
+}
+
+CaptureScreenTest::CaptureScreenTest()
+{
+    Size s = Director::getInstance()->getWinSize();
+    Vec2 left(s.width / 4, s.height / 2);
+    Vec2 right(s.width / 4 * 3, s.height / 2);
+	
+    auto sp1 = Sprite::create("Images/grossini.png");
+    sp1->setPosition(left);
+    auto move1 = MoveBy::create(1, Vec2(s.width/2, 0));
+    auto seq1 = RepeatForever::create(Sequence::create(move1, move1->reverse(), nullptr));
+    addChild(sp1);
+    sp1->runAction(seq1);
+    auto sp2 = Sprite::create("Images/grossinis_sister1.png");
+    sp2->setPosition(right);
+    auto move2 = MoveBy::create(1, Vec2(-s.width/2, 0));
+    auto seq2 = RepeatForever::create(Sequence::create(move2, move2->reverse(), nullptr));
+    addChild(sp2);
+    sp2->runAction(seq2);
+
+    auto label1 = Label::createWithTTF(TTFConfig("fonts/arial.ttf"), "capture all");
+    auto mi1 = MenuItemLabel::create(label1, CC_CALLBACK_1(CaptureScreenTest::onCaptured, this));
+    auto menu = Menu::create(mi1, nullptr);
+    addChild(menu);
+    menu->setPosition(s.width / 2, s.height / 4);
+
+    _filename = "";
+}
+
+CaptureScreenTest::~CaptureScreenTest()
+{
+    Director::getInstance()->getTextureCache()->removeTextureForKey(_filename);
+}
+
+std::string CaptureScreenTest::title() const
+{
+    return "New Renderer";
+}
+
+std::string CaptureScreenTest::subtitle() const
+{
+    return "Capture screen test, press the menu items to capture the screen";
+}
+
+void CaptureScreenTest::onCaptured(Ref*)
+{
+    Director::getInstance()->getTextureCache()->removeTextureForKey(_filename);
+    removeChildByTag(childTag);
+    _filename = "CaptureScreenTest.png";
+    // retain it to avoid crash caused by invoking afterCaptured 
+    this->retain();
+    utils::captureScreen(CC_CALLBACK_2(CaptureScreenTest::afterCaptured, this), _filename);
+}
+
+void CaptureScreenTest::afterCaptured(bool succeed, const std::string& outputFile)
+{
+    if (succeed)
+    {
+        auto sp = Sprite::create(outputFile);
+        addChild(sp, 0, childTag);
+        Size s = Director::getInstance()->getWinSize();
+        sp->setPosition(s.width / 2, s.height / 2);
+        sp->setScale(0.25);
+        _filename = outputFile;
+    }
+    else
+    {
+        log("Capture screen failed.");
+    }
+
+    // release it since it is retained in `CaptureScreenTest::onCaptured()`
+    this->release();
+}
+
+CaptureNodeTest::CaptureNodeTest()
+{
+    Size s = Director::getInstance()->getWinSize();
+    Vec2 left(s.width / 4, s.height / 2);
+    Vec2 right(s.width / 4 * 3, s.height / 2);
+
+    auto sp1 = Sprite::create("Images/grossini.png");
+    sp1->setPosition(left);
+    auto move1 = MoveBy::create(1, Vec2(s.width / 2, 0));
+    auto seq1 = RepeatForever::create(Sequence::create(move1, move1->reverse(), nullptr));
+    addChild(sp1);
+    sp1->runAction(seq1);
+    auto sp2 = Sprite::create("Images/grossinis_sister1.png");
+    sp2->setPosition(right);
+    auto move2 = MoveBy::create(1, Vec2(-s.width / 2, 0));
+    auto seq2 = RepeatForever::create(Sequence::create(move2, move2->reverse(), nullptr));
+    addChild(sp2);
+    sp2->runAction(seq2);
+
+    auto label1 = Label::createWithTTF(TTFConfig("fonts/arial.ttf"), "capture this scene");
+    auto mi1 = MenuItemLabel::create(label1, CC_CALLBACK_1(CaptureNodeTest::onCaptured, this));
+    auto menu = Menu::create(mi1, nullptr);
+    addChild(menu);
+    menu->setPosition(s.width / 2, s.height / 4);
+
+    _filename = "";
+}
+
+CaptureNodeTest::~CaptureNodeTest()
+{
+    Director::getInstance()->getTextureCache()->removeTextureForKey(_filename);
+}
+
+std::string CaptureNodeTest::title() const
+{
+    return "New Renderer";
+}
+
+std::string CaptureNodeTest::subtitle() const
+{
+    return "Capture node test, press the menu items to capture this scene with scale 0.5";
+}
+
+void CaptureNodeTest::onCaptured(Ref*)
+{ 
+    Director::getInstance()->getTextureCache()->removeTextureForKey(_filename);
+    removeChildByTag(childTag);
+    
+    _filename = FileUtils::getInstance()->getWritablePath() + "/CaptureNodeTest.png";
+
+    // capture this
+    auto callback = [&](Image* image){
+        // create a sprite with the captured image directly
+        auto sp = Sprite::createWithTexture(Director::getInstance()->getTextureCache()->addImage(image, _filename));
+        addChild(sp, 0, childTag);
+        Size s = Director::getInstance()->getWinSize();
+        sp->setPosition(s.width / 2, s.height / 2);
+        
+        // store to disk
+        image->saveToFile(_filename);
+        
+        // release the captured image
+        image->release();
+    };
+    
+    auto callbackFunction = std::bind(callback, std::placeholders::_1);
+    utils::captureNode(this, callbackFunction, 0.5);
+}
+
+BugAutoCulling::BugAutoCulling()
+{
+    Size s = Director::getInstance()->getWinSize();
+    auto fastmap = cocos2d::experimental::TMXTiledMap::create("TileMaps/orthogonal-test2.tmx");
+    this->addChild(fastmap);
+    for (int i = 0; i < 30; i++) {
+        auto sprite = Sprite::create("Images/grossini.png");
+        sprite->setPosition(s.width/2 + s.width/10 * i, s.height/2);
+        this->addChild(sprite);
+        auto label = Label::createWithTTF(TTFConfig("fonts/arial.ttf"), "Label");
+        label->setPosition(s.width/2 + s.width/10 * i, s.height/2);
+        this->addChild(label);
+    }
+    this->scheduleOnce([=](float){
+        auto camera = Director::getInstance()->getRunningScene()->getCameras().front();
+        auto move  = MoveBy::create(2.0, Vec2(2 * s.width, 0));
+        camera->runAction(Sequence::create(move, move->reverse(),nullptr));
+    }, 1.0f, "lambda-autoculling-bug");
+}
+
+std::string BugAutoCulling::title() const
+{
+    return "Bug-AutoCulling";
+}
+
+std::string BugAutoCulling::subtitle() const
+{
+    return "Moving the camera to the right instead of moving the layer";
+}
+
+//
+// RendererBatchQuadTri
+//
+
+RendererBatchQuadTri::RendererBatchQuadTri()
+{
+    Size s = Director::getInstance()->getWinSize();
+
+    for (int i=0; i<250; i++)
+    {
+        int x = CCRANDOM_0_1() * s.width;
+        int y = CCRANDOM_0_1() * s.height;
+
+        auto label = LabelAtlas::create("This is a label", "fonts/tuffy_bold_italic-charmap.plist");
+        label->setColor(Color3B::RED);
+        label->setPosition(Vec2(x,y));
+        addChild(label);
+
+        auto sprite = Sprite::create("fonts/tuffy_bold_italic-charmap.png");
+        sprite->setTextureRect(Rect(0,0,100,100));
+        sprite->setPosition(Vec2(x,y));
+        sprite->setColor(Color3B::BLUE);
+        addChild(sprite);
+    }
+}
+
+std::string RendererBatchQuadTri::title() const
+{
+    return "RendererBatchQuadTri";
+}
+
+std::string RendererBatchQuadTri::subtitle() const
+{
+    return "QuadCommand and TriangleCommands are batched together";
+}
+
+
+//
+//
+// RendererUniformBatch
+//
+
+RendererUniformBatch::RendererUniformBatch()
+{
+    Size s = Director::getInstance()->getWinSize();
+
+    auto blurState = createBlurProgramState();
+    auto sepiaState = createSepiaProgramState();
+
+    auto x_inc = s.width / 20;
+    auto y_inc = s.height / 6;
+
+    for (int y=0; y<6; ++y)
+    {
+        for (int x=0; x<20; ++x)
+        {
+            auto sprite = Sprite::create("Images/grossini.png");
+            sprite->setPosition(Vec2(x * x_inc, y * y_inc));
+            sprite->setScale(0.4);
+            addChild(sprite);
+
+            if (y>=4) {
+                sprite->setProgramState(sepiaState);
+            } else if(y>=2) {
+                sprite->setProgramState(blurState);
+            }
+        }
+    }
+}
+
+cocos2d::backend::ProgramState* RendererUniformBatch::createBlurProgramState()
+{
+    const std::string shaderName("Shaders/example_Blur.fsh");
+    // outline shader
+    auto fileUtiles = FileUtils::getInstance();
+    auto fragmentFullPath = fileUtiles->fullPathForFilename(shaderName);
+    auto fragSource = fileUtiles->getStringFromFile(fragmentFullPath);
+    auto programState = new backend::ProgramState(positionTextureColor_vert, fragSource.c_str());
+
+
+
+    backend::UniformLocation loc = programState->getUniformLocation("resolution");
+    auto resolution = Vec2(85, 121);
+    programState->setUniform(loc, &resolution, sizeof(resolution));
+
+    loc = programState->getUniformLocation("blurRadius");
+    float blurRadius = 10.0f;
+    programState->setUniform(loc, &blurRadius, sizeof(blurRadius));
+
+    loc = programState->getUniformLocation("sampleNum");
+    float sampleNum = 5.0f;
+    programState->setUniform(loc, &sampleNum, sizeof(sampleNum));
+
+    return programState;
+}
+
+cocos2d::backend::ProgramState* RendererUniformBatch::createSepiaProgramState()
+{
+    const std::string shaderName("Shaders/example_Sepia.fsh");
+
+    // outline shader
+    auto fileUtiles = FileUtils::getInstance();
+    auto fragmentFullPath = fileUtiles->fullPathForFilename(shaderName);
+    auto fragSource = fileUtiles->getStringFromFile(fragmentFullPath);
+    auto glprogram = new backend::ProgramState(positionTextureColor_vert, fragSource.c_str());
+    
+    return glprogram;
+}
+
+std::string RendererUniformBatch::title() const
+{
+    return "RendererUniformBatch";
+}
+
+std::string RendererUniformBatch::subtitle() const
+{
+    return "Only 9 draw calls should appear";
+}
+
+
+////
+//// RendererUniformBatch2
+////
+
+RendererUniformBatch2::RendererUniformBatch2()
+{
+    Size s = Director::getInstance()->getWinSize();
+
+    auto blurState = createBlurProgramState();
+    auto sepiaState = createSepiaProgramState();
+
+    auto x_inc = s.width / 20;
+    auto y_inc = s.height / 6;
+
+    for (int y=0; y<6; ++y)
+    {
+        for (int x=0; x<20; ++x)
+        {
+            auto sprite = Sprite::create("Images/grossini.png");
+            sprite->setPosition(Vec2(x * x_inc, y * y_inc));
+            sprite->setScale(0.4);
+            addChild(sprite);
+
+            auto r = CCRANDOM_0_1();
+            if (r < 0.33)
+                sprite->setProgramState(sepiaState);
+            else if (r < 0.66)
+                sprite->setProgramState(blurState);
+        }
+    }
+}
+
+backend::ProgramState* RendererUniformBatch2::createBlurProgramState()
+{
+    const std::string shaderName("Shaders/example_Blur.fsh");
+
+    // outline shader
+    auto fileUtiles = FileUtils::getInstance();
+    auto fragmentFullPath = fileUtiles->fullPathForFilename(shaderName);
+    auto fragSource = fileUtiles->getStringFromFile(fragmentFullPath);
+    
+    auto programState = new backend::ProgramState(positionTextureColor_vert, fragSource.c_str());
+
+    backend::UniformLocation loc = programState->getUniformLocation("resolution");
+    auto resolution = Vec2(85, 121);
+    programState->setUniform(loc, &resolution, sizeof(resolution));
+
+    loc = programState->getUniformLocation("blurRadius");
+    float blurRadius = 10.0f;
+    programState->setUniform(loc, &blurRadius, sizeof(blurRadius));
+
+    loc = programState->getUniformLocation("sampleNum");
+    float sampleNum = 5.0f;
+    programState->setUniform(loc, &sampleNum, sizeof(sampleNum));
+
+    return programState;
+}
+
+backend::ProgramState*  RendererUniformBatch2::createSepiaProgramState()
+{
+    const std::string shaderName("Shaders/example_Sepia.fsh");
+
+    // outline shader
+    auto fileUtiles = FileUtils::getInstance();
+    auto fragmentFullPath = fileUtiles->fullPathForFilename(shaderName);
+    auto fragSource = fileUtiles->getStringFromFile(fragmentFullPath);
+    auto glprogram = new backend::ProgramState(positionTextureColor_vert, fragSource.c_str());
+
+    return glprogram;
+}
+
+std::string RendererUniformBatch2::title() const
+{
+    return "RendererUniformBatch 2";
+}
+
+std::string RendererUniformBatch2::subtitle() const
+{
+    return "Mixing different shader states should work ok";
+}
+
+NonBatchSprites::NonBatchSprites()
+{
+    Size s = Director::getInstance()->getWinSize();
+    _spritesAnchor = Node::create();
+    _spritesAnchor->setPosition(0, 0);
+    addChild(_spritesAnchor);
+
+
+    _totalSprites = Label::createWithTTF(TTFConfig("fonts/arial.ttf"), "sprites");
+    _totalSprites->setColor(Color3B::YELLOW);
+    _totalSprites->enableOutline(Color4B::RED, 2);
+    _totalSprites->setPosition(s.width/2, s.height/2);
+
+    addChild(_totalSprites);
+
+    scheduleUpdate();
+}
+
+void NonBatchSprites::createSprite()
+{
+
+    Size s = Director::getInstance()->getWinSize();
+    Sprite* sprite = nullptr;
+    if (_spriteIndex % 2 == 0)
+    {
+        sprite = Sprite::create("Images/grossini_dance_05.png");
+    }
+    else
+    {
+        sprite = Sprite::create("Images/grossini_dance_01.png");
+    }
+
+    if (!sprite) return;
+    auto r = rand_0_1() * 0.6 + 0.2;
+    sprite->setScale(r, r);
+    float x = ((float)std::rand()) / RAND_MAX;
+    float y = ((float)std::rand()) / RAND_MAX;
+    sprite->runAction(RepeatForever::create(RotateBy::create(1, 45)));
+
+    sprite->setPosition(Vec2(x * s.width, y * s.height));
+    _spritesAnchor->addChild(sprite);
+
+    _spriteIndex++;
+    std::stringstream ss;
+    ss << _spriteIndex << " sprites";
+    _totalSprites->setString(ss.str());
+}
+
+void NonBatchSprites::update(float dt)
+{
+
+    if( dt <= 1.0f / 28.0f && dt >= 1.0f/ 31.0f)
+    {
+        _around30fps.hit();
+    }
+    else
+    {
+        _around30fps.cancel();
+    }
+
+    _maDt = 0.7f * _maDt  + 0.3f * dt;
+    _rmaDt = 0.5f * _rmaDt  + 0.5f * dt;
+    if(_maDt <= DEST_DT_30FPS) {
+        _contSlow.cancel();
+        _contFast.hit();
+        if(_contFast.ok()){
+            auto t2 = DEST_DT_30FPS - _rmaDt;
+            auto delta = (int)(t2 / _rmaDt * _spriteIndex * 0.1);
+            delta =std::min(20, std::max(1, delta));
+            for(int i =0 ;i< delta; i++) {
+                createSprite();
+            }
+        }
+    }else{
+        _contSlow.hit();
+        _contFast.cancel();
+    }
+
+    if(_contSlow.ok() || _around30fps.ok())
+    {
+        unscheduleUpdate();
+        std::stringstream ss;
+        ss << _spriteIndex << " sprites, DONE!";
+        _totalSprites->setString(ss.str());
+        _totalSprites->setScale(1.2);
+    }
+}
+
+NonBatchSprites::~NonBatchSprites()
+{
+
+}
+
+std::string NonBatchSprites::title() const
+{
+    return "Non Batched Sprites";
+}
+
+std::string NonBatchSprites::subtitle() const
+{
+#if defined(COCOS2D_DEBUG) && COCOS2D_DEBUG == 1
+    return "DEBUG: simulate lots of sprites, drop to 30 fps";
+#else
+    return "RELEASE: simulate lots of sprites, drop to 30 fps";
+#endif
+}
 
