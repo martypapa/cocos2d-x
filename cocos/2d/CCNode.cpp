@@ -81,6 +81,17 @@ Node::Node()
 , _additionalTransform(nullptr)
 , _additionalTransformDirty(false)
 , _transformUpdated(true)
+
+MOD_BEGIN
+, _offsetSize(Size::Zero)
+, _normalizedSize(Size::Zero)
+, _maxSize(1e9, 1e9)
+, _minSize(Size::Zero)
+, _normalizedSizeDirty(false)
+, _usingNormalizedSize(false)
+, _maxOpacity(255)
+MOD_END
+
 // children (lazy allocs)
 // lazy alloc
 , _localZOrder$Arrival(0LL)
@@ -518,7 +529,6 @@ void Node::setPosition(float x, float y)
     _position.y = y;
     
     _transformUpdated = _transformDirty = _inverseDirty = true;
-    _usingNormalizedPosition = false;
 }
 
 void Node::setPosition3D(const Vec3& position)
@@ -585,6 +595,7 @@ void Node::setPositionNormalized(const Vec2& position)
     _transformUpdated = _transformDirty = _inverseDirty = true;
 }
 
+
 ssize_t Node::getChildrenCount() const
 {
     return _children.size();
@@ -636,12 +647,19 @@ const Size& Node::getContentSize() const
 
 void Node::setContentSize(const Size & size)
 {
+    MOD_BEGIN
+    if (_usingNormalizedSize)
+        return;
+    MOD_END
     if (! size.equals(_contentSize))
     {
         _contentSize = size;
 
         _anchorPointInPoints.set(_contentSize.width * _anchorPoint.x, _contentSize.height * _anchorPoint.y);
         _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+        MOD_BEGIN
+        _usingNormalizedSize = false;
+        MOD_END
     }
 }
 
@@ -1164,14 +1182,29 @@ void Node::visit()
 
 uint32_t Node::processParentFlags(const Mat4& parentTransform, uint32_t parentFlags)
 {
+    if (_usingNormalizedSize) {
+        CCASSERT(_parent, "setSizeNormalized() doesn't work with orphan nodes");
+        if ((parentFlags & FLAGS_CONTENT_SIZE_DIRTY) || _normalizedPositionDirty || _transformDirty)
+        {
+            auto s = _parent->getContentSize() * _normalizedSize + _offsetSize;
+            _contentSize = {
+                clampf(s.width, _minSize.width, _maxSize.width),
+                clampf(s.height, _minSize.height, _maxSize.height),
+            };
+            _anchorPointInPoints.set(_contentSize.width * _anchorPoint.x, _contentSize.height * _anchorPoint.y);
+            _transformUpdated = _transformDirty = _inverseDirty = true;
+            _normalizedSizeDirty = false;
+        }
+    }
+    
     if(_usingNormalizedPosition)
     {
         CCASSERT(_parent, "setPositionNormalized() doesn't work with orphan nodes");
-        if ((parentFlags & FLAGS_CONTENT_SIZE_DIRTY) || _normalizedPositionDirty)
+        if ((parentFlags & FLAGS_CONTENT_SIZE_DIRTY) || _normalizedPositionDirty || _transformDirty)
         {
             auto& s = _parent->getContentSize();
-            _position.x = _normalizedPosition.x * s.width;
-            _position.y = _normalizedPosition.y * s.height;
+            _position.x = _normalizedPosition.x * s.width + _positionShift.x;
+            _position.y = _normalizedPosition.y * s.height + _positionShift.y;
             _transformUpdated = _transformDirty = _inverseDirty = true;
             _normalizedPositionDirty = false;
         }
@@ -1970,7 +2003,7 @@ void Node::setOpacity(uint8_t opacity)
 
 void Node::updateDisplayedOpacity(uint8_t parentOpacity)
 {
-    _displayedOpacity = _realOpacity * parentOpacity/255.0;
+    _displayedOpacity = _realOpacity * parentOpacity * _maxOpacity / (255.0 * 255.0);
     updateColor();
     
     if (_cascadeOpacityEnabled)
@@ -2012,7 +2045,7 @@ void Node::updateCascadeOpacity()
     
     if (_parent != nullptr && _parent->isCascadeOpacityEnabled())
     {
-        parentOpacity = _parent->getDisplayedOpacity();
+        parentOpacity = _parent->maxOpacity();
     }
     
     updateDisplayedOpacity(parentOpacity);
@@ -2190,5 +2223,118 @@ backend::ProgramState* Node::getProgramState() const
 {
     return _programState;
 }
+
+
+MOD_BEGIN
+/// position getter
+const Vec2& Node::relPos() const
+{
+    return _shiftPosition;
+}
+
+
+/// position setter
+void Node::setRelPos(const Vec2& position)
+{
+    if (_usingNormalizedPosition && _positionShift.equals(position))
+        return;
+    
+    _positionShift = position;
+    _normalizedPositionDirty = _transformUpdated = _transformDirty = _inverseDirty = true;
+    _usingNormalizedPosition = true;
+}
+
+void Node::setRelPosX(float x) {
+    setRelPos({x, _positionShift.y});
+    
+}
+void Node::setRelPosY(float y) {
+    setRelPos({_positionShift.x, y});
+    
+}
+
+
+
+void Node::setPositionNormalizedX(float x) {
+    setPositionNormalized({x, _normalizedPosition.y});
+    
+}
+void Node::setPositionNormalizedY(float y) {
+    setPositionNormalized({_normalizedPosition.x, y});
+    
+}
+
+void Node::disablePositionNormalized() {
+    _usingNormalizedPosition = false;
+    _normalizedPositionDirty = true;
+    _transformUpdated = _transformDirty = _inverseDirty = true;
+}
+
+void Node::setAnchor(const Vec2& anchor) {
+    return setAnchorPoint(anchor);
+}
+void Node::setAnchorX(float x) {
+    setAnchorPoint({x, _anchorPoint.y});
+}
+void Node::setAnchorY(float y) {
+    setAnchorPoint({_anchorPoint.x, y});
+}
+
+void Node::setContentSizeW(float w) {
+    setContentSize(w, _contentSize.height);
+}
+void Node::setContentSizeH(float h) {
+    setContentSize(_contentSize.width, h);
+}
+
+
+void Node::setSizeNormalized(const Size& size) {
+    if (_usingNormalizedSize && size.equals(_normalizedSize))
+        return;
+    _normalizedSize = size;
+    _normalizedSizeDirty = _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+    _usingNormalizedSize = true;
+}
+
+void Node::setWidthNormalized(float w) {
+    setSizeNormalized(w, _normalizedSize.height);
+}
+void Node::setHeightNormalized(float h) {
+    setSizeNormalized(_normalizedSize.width, h);
+}
+
+const Size& Node::floatSize() const {
+    return _normalizedSize;
+}
+
+void Node::setRelSize(const Size& size) {
+    if (_usingNormalizedSize && size.equals(_offsetSize))
+        return;
+    _offsetSize = size;
+    _normalizedSizeDirty = _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+    _usingNormalizedSize = true;
+}
+
+void Node::setRelSizeW(float w) {
+    setSizeOffset({w, _offsetSize.height});
+}
+void Node::setRelSizeH(float h) {
+    setSizeOffset({_offsetSize.width, h});
+}
+
+const Size& Node::relSize() const {
+    return _offsetSize;
+}
+
+
+uint8_t Node::maxOpacity() const {
+    return _maxOpacity;
+}
+void Node::setMaxOpacity(uint8_t maxOpacity) {
+    _maxOpacity = maxOpacity;
+    _displayedOpacity = _realOpacity;
+    updateCascadeOpacity();
+}
+MOD_END
 
 NS_CC_END

@@ -1770,6 +1770,65 @@ public:
     virtual void setProgramState(backend::ProgramState* programState);
     virtual backend::ProgramState* getProgramState() const;
 
+    MOD_BEGIN
+    
+    inline void setFloatPos(const Vec2 &pos) { setPositionNormalized(pos); }
+    inline const Vec2& floatPos() const { return _normalizedPosition; }
+
+    inline void setFloatPosX(float x) { setFloatPos({x, floatPos().y}); }
+    inline void setFloatPosY(float y) { setFloatPos({floatPos().x, y}); }
+    
+    
+    /** Sets the shifted position (x,y)
+     *
+     * @param position The shifted position (x,y) of the node
+     */
+    virtual void setRelPos(const Vec2 &position);
+    void setRelPosX(float x);
+    void setRelPosY(float y);
+    
+    const Vec2& relPos() const;
+
+    inline void setAbsPos(const Vec2 &pos) { setPosition(pos); }
+    inline const Vec2& absPos() const { return getPosition(); }
+    inline void setAbsPosX(float x) { setPositionX(x); }
+    inline void setAbsPosY(float y) { setPositionY(y); }
+    
+    
+    
+    /** Disables the normalized position system and uses the absolute position instead
+     */
+    void disablePositionNormalized();
+    
+    
+    void setAnchor(const Vec2& anchor);
+    void setAnchorX(float x);
+    void setAnchorY(float y);
+    
+    inline const Vec2& anchor() const { return getAnchorPoint(); }
+    inline const Vec2& anchorInPoints() const { return getAnchorPointInPoints(); }
+
+    
+    void setContentSizeW(float w);
+    void setContentSizeH(float h);
+    
+    void setFloatSize(const Size& normalizedSize);
+    void setFloatSizeW(float w);
+    void setFloatSizeH(float h);
+    
+    const Size& floatSize() const;
+    
+    void setRelSize(const Size& offsetSize);
+    void setRelSizeW(float w);
+    void setRelSizeH(float h);
+    
+    const Size& relSize() const;
+    
+    uint8_t maxOpacity() const;
+    void setMaxOpacity(uint8_t maxOpacity);
+    
+    MOD_END
+    
 CC_CONSTRUCTOR_ACCESS:
     // Nodes should be created using create();
     Node();
@@ -1854,6 +1913,19 @@ protected:
     mutable bool _additionalTransformDirty; ///< transform dirty ?
     bool _transformUpdated;         ///< Whether or not the Transform object was updated since the last frame
 
+    MOD_BEGIN
+    Vec2 _relPos;           ///< shifted position of the node in normalized mode
+    
+    Size _normalizedSize;
+    Size _offsetSize;
+    Size _maxSize;
+    Size _minSize;
+    bool _normalizedSizeDirty;         ///< whether or not the normalizedSize is dirty
+    bool _usingNormalizedSize;
+    // Opacity is scaled proportionally between 0 and this value.
+    uint8_t     _maxOpacity;
+    MOD_END
+    
 #if CC_LITTLE_ENDIAN
     union {
         struct {
