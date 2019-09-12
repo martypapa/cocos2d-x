@@ -631,6 +631,12 @@ public:
      */
     void setFocusEnabled(bool enable);
     
+    bool isHovering() const;
+    void setHovering(bool hovering);
+    bool isHoveringEnabled() const;
+    void setHoveringEnabled(bool enable);
+    void onMouseMoved(EventMouse* event);
+    
     /**
      *  When a widget is in a layout, you could call this method to get the next focused widget within a specified direction. 
      *  If the widget is not in a layout, it will return itself
@@ -765,13 +771,16 @@ protected:
     virtual void onPressStateChangedToPressed();
     //call back function called widget's state changed to dark.
     virtual void onPressStateChangedToDisabled();
+    
 
     void pushDownEvent();
     void moveEvent();
 
     virtual void releaseUpEvent();
     virtual void cancelUpEvent();
-
+    
+    virtual void hoverInEvent();
+    virtual void hoverOutEvent();
     
     virtual void adaptRenderers(){};
     void updateChildrenDisplayedRGBA();
@@ -801,7 +810,7 @@ protected:
     bool _affectByClipping;
     bool _ignoreSize;
     bool _propagateTouchEvents;
-
+    
     BrightStyle _brightStyle;
     SizeType _sizeType;
     PositionType _positionType;
@@ -819,6 +828,7 @@ protected:
     // it's useful in the next touch move/end events
     const Camera *_hittedByCamera;
     EventListenerTouchOneByOne* _touchListener;
+    EventListenerMouse* _mouseListener;
     Vec2 _touchBeganPosition;
     Vec2 _touchMovePosition;
     Vec2 _touchEndPosition;
@@ -832,12 +842,18 @@ protected:
 
     bool _focused;
     bool _focusEnabled;
+    
+    bool _hoveringEnabled;
+    bool _hovering;
+    
     /**
      * store the only one focused widget
      */
     static Widget *_focusedWidget;  //both layout & widget will be stored in this variable
+    static Widget *_hoveringWidget;  //both layout & widget will be stored in this variable
 
     Ref*       _touchEventListener;
+    
     ccWidgetTouchCallback _touchEventCallback;
     ccWidgetClickCallback _clickEventListener;
     ccWidgetEventCallback _ccEventCallback;
@@ -847,6 +863,7 @@ protected:
 private:
     class FocusNavigationController;
     static FocusNavigationController* _focusNavigationController;
+    static EventMouse* _lastMouseMovedEvent;
 };
 }
 

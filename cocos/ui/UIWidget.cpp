@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include "ui/UILayout.h"
 #include "ui/UIHelper.h"
 #include "base/CCEventListenerTouch.h"
+#include "base/CCEventListenerMouse.h"
 #include "base/CCEventListenerKeyboard.h"
 #include "base/CCDirector.h"
 #include "base/CCEventFocus.h"
@@ -138,7 +139,10 @@ void Widget::FocusNavigationController::removeKeyboardEventListener()
 }
 
 Widget* Widget::_focusedWidget = nullptr;
+Widget* Widget::_hoveringWidget = nullptr;
+    
 Widget::FocusNavigationController* Widget::_focusNavigationController = nullptr;
+Widget::EventMouse* Widget::_lastMouseMovedEvent = nullptr;
 
 Widget::Widget():
 _usingLayoutComponent(false),
@@ -163,6 +167,8 @@ _flippedY(false),
 _layoutParameterType(LayoutParameter::Type::NONE),
 _focused(false),
 _focusEnabled(true),
+_hovering(false),
+_hoveringEnabled(true),
 _touchEventListener(nullptr),
 _ccEventCallback(nullptr),
 _callbackType(""),
@@ -188,6 +194,10 @@ void Widget::cleanupWidget()
         //delete
         CC_SAFE_DELETE(_focusNavigationController);
         _focusedWidget = nullptr;
+    }
+    
+    if (_hoveringWidget == this) {
+        _hoveringWidget = nullptr;
     }
 
 }
@@ -564,6 +574,7 @@ void Widget::updateContentSizeWithTextureSize(const cocos2d::Size &size)
 
 void Widget::setTouchEnabled(bool enable)
 {
+    setHoveringEnabled(enable);
     if (enable == _touchEnabled)
     {
         return;
@@ -910,6 +921,14 @@ void Widget::cancelUpEvent()
 
     this->release();
 }
+    
+void Widget::hoverInEvent()
+{
+}
+    
+void Widget::hoverOutEvent()
+{
+}
 
 void Widget::addTouchEventListener(const ccWidgetTouchCallback& callback)
 {
@@ -1176,6 +1195,7 @@ void Widget::copyProperties(Widget *widget)
     setVisible(widget->isVisible());
     setBright(widget->isBright());
     setTouchEnabled(widget->isTouchEnabled());
+    setHoveringEnabled(widget->isHoveringEnabled());
     setLocalZOrder(widget->getLocalZOrder());
     setTag(widget->getTag());
     setName(widget->getName());
@@ -1329,6 +1349,61 @@ bool Widget::isFocusEnabled()const
     return _focusEnabled;
 }
 
+
+
+bool Widget::isHovering() const {
+    return _hovering;
+    
+}
+void Widget::setHovering(bool hovering) {
+    if (hovering) {
+        _hoveringWidget = this;
+    } else {
+        if (_hoveringWidget == this) {
+            _hoveringWidget = nullptr;
+        }
+        
+    }
+    if (_hovering != hovering) {
+        _hovering = hovering;
+    }
+}
+bool Widget::isHoveringEnabled() const {
+    return _hoveringEnabled;
+}
+void Widget::setHoveringEnabled(bool enable) {
+    if (enable == _hoveringEnabled) {
+        return;
+    }
+    _hoveringEnabled = enable;
+    if (_hoveringEnabled) {
+        _mouseListener = EventListenerMouse::create();
+        CC_SAFE_RETAIN(_mouseListener);
+        _mouseListener->onMouseMove = CC_CALLBACK_1(Widget::onMouseMoved, this);
+        _eventDispatcher->addEventListenerWithSceneGraphPriority(_mouseListener, this);
+    } else {
+        _eventDispatcher->removeEventListener(_mouseListener);
+        CC_SAFE_RELEASE_NULL(_mouseListener);
+    }
+}
+void Widget::onMouseMoved(EventMouse* event) {
+    if (_lastMouseMovedEvent == event) {
+        setHovering(false);
+        return;
+    }
+    bool hit = false;
+    if (_hoveringEnabled && isVisible() && isEnabled() && isAncestorsEnabled() && isAncestorsVisible(this)) {
+        auto pos = mouse->getLocation();
+        if (hitTest(pos, Camera::getVisitingCamera(), nullptr)) {
+            if (isClippingParentContainsPoint(pos)) {
+                hit = true;
+                _lastMouseMovedEvent = event;
+            }
+        }
+    }
+    setHovering(hit);
+}
+    
 Widget* Widget::findNextFocusedWidget(FocusDirection direction,  Widget* current)
 {
     if (nullptr == onNextFocusedWidget || nullptr == onNextFocusedWidget(direction) ) {
