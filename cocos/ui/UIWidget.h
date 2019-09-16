@@ -41,6 +41,8 @@ NS_CC_BEGIN
 
 class EventListenerTouchOneByOne;
 class Camera;
+class EventMouse;
+class EventListenerMouse;
 
 namespace ui {
     class LayoutComponent;

@@ -83,10 +83,10 @@ Node::Node()
 , _transformUpdated(true)
 
 MOD_BEGIN
-, _offsetSize(Size::Zero)
-, _normalizedSize(Size::Zero)
+, _offsetSize(Size::ZERO)
+, _normalizedSize(Size::ZERO)
 , _maxSize(1e9, 1e9)
-, _minSize(Size::Zero)
+, _minSize(Size::ZERO)
 , _normalizedSizeDirty(false)
 , _usingNormalizedSize(false)
 , _maxOpacity(255)
@@ -1183,11 +1183,16 @@ void Node::visit()
 uint32_t Node::processParentFlags(const Mat4& parentTransform, uint32_t parentFlags)
 {
     if (_usingNormalizedSize) {
-        CCASSERT(_parent, "setSizeNormalized() doesn't work with orphan nodes");
+        if (!_parent) {
+            return parentFlags;
+        }
+//        CCASSERT(_parent, "setSizeNormalized() doesn't work with orphan nodes");
         if ((parentFlags & FLAGS_CONTENT_SIZE_DIRTY) || _normalizedPositionDirty || _transformDirty)
         {
-            auto s = _parent->getContentSize() * _normalizedSize + _offsetSize;
-            _contentSize = {
+            auto &a = _parent->getContentSize();
+            auto &b = _normalizedSize;
+            auto s =  Size(a.width * b.width, a.height * b.height) + _offsetSize;
+            _contentSize = Size{
                 clampf(s.width, _minSize.width, _maxSize.width),
                 clampf(s.height, _minSize.height, _maxSize.height),
             };
@@ -1199,12 +1204,15 @@ uint32_t Node::processParentFlags(const Mat4& parentTransform, uint32_t parentFl
     
     if(_usingNormalizedPosition)
     {
-        CCASSERT(_parent, "setPositionNormalized() doesn't work with orphan nodes");
+        if (!_parent) {
+            return parentFlags;
+        }
+//        CCASSERT(_parent, "setPositionNormalized() doesn't work with orphan nodes");
         if ((parentFlags & FLAGS_CONTENT_SIZE_DIRTY) || _normalizedPositionDirty || _transformDirty)
         {
             auto& s = _parent->getContentSize();
-            _position.x = _normalizedPosition.x * s.width + _positionShift.x;
-            _position.y = _normalizedPosition.y * s.height + _positionShift.y;
+            _position.x = _normalizedPosition.x * s.width + _relPos.x;
+            _position.y = _normalizedPosition.y * s.height + _relPos.y;
             _transformUpdated = _transformDirty = _inverseDirty = true;
             _normalizedPositionDirty = false;
         }
@@ -2229,40 +2237,30 @@ MOD_BEGIN
 /// position getter
 const Vec2& Node::relPos() const
 {
-    return _shiftPosition;
+    return _relPos;
 }
 
 
 /// position setter
 void Node::setRelPos(const Vec2& position)
 {
-    if (_usingNormalizedPosition && _positionShift.equals(position))
+    if (_usingNormalizedPosition && _relPos.equals(position))
         return;
     
-    _positionShift = position;
+    _relPos = position;
     _normalizedPositionDirty = _transformUpdated = _transformDirty = _inverseDirty = true;
     _usingNormalizedPosition = true;
 }
 
 void Node::setRelPosX(float x) {
-    setRelPos({x, _positionShift.y});
+    setRelPos({x, _relPos.y});
     
 }
 void Node::setRelPosY(float y) {
-    setRelPos({_positionShift.x, y});
+    setRelPos({_relPos.x, y});
     
 }
 
-
-
-void Node::setPositionNormalizedX(float x) {
-    setPositionNormalized({x, _normalizedPosition.y});
-    
-}
-void Node::setPositionNormalizedY(float y) {
-    setPositionNormalized({_normalizedPosition.x, y});
-    
-}
 
 void Node::disablePositionNormalized() {
     _usingNormalizedPosition = false;
@@ -2281,14 +2279,14 @@ void Node::setAnchorY(float y) {
 }
 
 void Node::setContentSizeW(float w) {
-    setContentSize(w, _contentSize.height);
+    setContentSize({w, _contentSize.height});
 }
 void Node::setContentSizeH(float h) {
-    setContentSize(_contentSize.width, h);
+    setContentSize({_contentSize.width, h});
 }
 
 
-void Node::setSizeNormalized(const Size& size) {
+void Node::setFloatSize(const Size& size) {
     if (_usingNormalizedSize && size.equals(_normalizedSize))
         return;
     _normalizedSize = size;
@@ -2296,11 +2294,11 @@ void Node::setSizeNormalized(const Size& size) {
     _usingNormalizedSize = true;
 }
 
-void Node::setWidthNormalized(float w) {
-    setSizeNormalized(w, _normalizedSize.height);
+void Node::setFloatSizeW(float w) {
+    setFloatSize({w, _normalizedSize.height});
 }
-void Node::setHeightNormalized(float h) {
-    setSizeNormalized(_normalizedSize.width, h);
+void Node::setFloatSizeH(float h) {
+    setFloatSize({_normalizedSize.width, h});
 }
 
 const Size& Node::floatSize() const {
@@ -2316,10 +2314,10 @@ void Node::setRelSize(const Size& size) {
 }
 
 void Node::setRelSizeW(float w) {
-    setSizeOffset({w, _offsetSize.height});
+    setRelSize({w, _offsetSize.height});
 }
 void Node::setRelSizeH(float h) {
-    setSizeOffset({_offsetSize.width, h});
+    setRelSize({_offsetSize.width, h});
 }
 
 const Size& Node::relSize() const {

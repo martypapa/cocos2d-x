@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include "ui/UILayout.h"
 #include "ui/UIHelper.h"
 #include "base/CCEventListenerTouch.h"
+#include "base/CCEventMouse.h"
 #include "base/CCEventListenerMouse.h"
 #include "base/CCEventListenerKeyboard.h"
 #include "base/CCDirector.h"
@@ -142,7 +143,7 @@ Widget* Widget::_focusedWidget = nullptr;
 Widget* Widget::_hoveringWidget = nullptr;
     
 Widget::FocusNavigationController* Widget::_focusNavigationController = nullptr;
-Widget::EventMouse* Widget::_lastMouseMovedEvent = nullptr;
+EventMouse* Widget::_lastMouseMovedEvent = nullptr;
 
 Widget::Widget():
 _usingLayoutComponent(false),
@@ -1393,7 +1394,7 @@ void Widget::onMouseMoved(EventMouse* event) {
     }
     bool hit = false;
     if (_hoveringEnabled && isVisible() && isEnabled() && isAncestorsEnabled() && isAncestorsVisible(this)) {
-        auto pos = mouse->getLocation();
+        auto pos = event->getLocation();
         if (hitTest(pos, Camera::getVisitingCamera(), nullptr)) {
             if (isClippingParentContainsPoint(pos)) {
                 hit = true;
