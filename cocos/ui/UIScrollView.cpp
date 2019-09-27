@@ -348,6 +348,11 @@ void ScrollView::updateScrollBar(const Vec2& outOfBoundary)
     }
 }
 
+void ScrollView::mouseScrolled(float x, float y) {
+
+    moveInnerContainer({x, y}, true);
+}
+
 Vec2 ScrollView::calculateTouchMoveVelocity() const
 {
     float totalTime = 0;

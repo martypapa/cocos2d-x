@@ -655,6 +655,34 @@ void DrawNode::drawPolygon(const Vec2 *verts, int count, const Color4F &fillColo
     _dirty = true;
 }
 
+MOD_BEGIN
+void DrawNode::drawQuad(const Vec2 *verts, const Color4F *colors)
+{
+    drawTriangle(verts[0], verts[1], verts[2], colors[0], colors[1], colors[2]);
+    drawTriangle(verts[0], verts[2], verts[3], colors[0], colors[2], colors[3]);
+
+}
+
+void DrawNode::drawTriangle(const Vec2 &p1, const Vec2 &p2, const Vec2 &p3, const Color4F &c1, const Color4F &c2, const Color4F &c3)
+{
+    unsigned int vertex_count = 3;
+    ensureCapacity(vertex_count);
+
+    Color4B cols[] = {Color4B(c1), Color4B(c2), Color4B(c3)};
+    V2F_C4B_T2F a = {Vec2(p1.x, p1.y), cols[0], Tex2F(0.0, 0.0) };
+    V2F_C4B_T2F b = {Vec2(p2.x, p2.y), cols[1], Tex2F(0.0,  0.0) };
+    V2F_C4B_T2F c = {Vec2(p3.x, p3.y), cols[2], Tex2F(0.0,  0.0) };
+
+    V2F_C4B_T2F_Triangle *triangles = (V2F_C4B_T2F_Triangle *)(_buffer + _bufferCount);
+    V2F_C4B_T2F_Triangle triangle = {a, b, c};
+    triangles[0] = triangle;
+
+    _bufferCount += vertex_count;
+    _dirty = true;
+}
+MOD_END
+
+
 void DrawNode::drawSolidRect(const Vec2 &origin, const Vec2 &destination, const Color4F &color)
 {
     Vec2 vertices[] = {

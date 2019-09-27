@@ -23,7 +23,7 @@
 # ****************************************************************************/
 
 if(ANDROID)
-    # refer to target: cocos/platform/android/CMakeLists.txt
+    # refer to target: cocos/platform/android/base.cmake
     set(COCOS_PLATFORM_SPECIFIC_SRC
         platform/android/CCApplication-android.cpp
         platform/android/CCCommon-android.cpp

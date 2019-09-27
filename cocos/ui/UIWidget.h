@@ -632,13 +632,21 @@ public:
      *@param enable pass true/false to enable/disable the focus ability of a widget
      */
     void setFocusEnabled(bool enable);
-    
+
+    void setMouseEnabled(bool enable);
+    bool isMouseEnabled() const;
+
+
     bool isHovering() const;
     void setHovering(bool hovering);
-    bool isHoveringEnabled() const;
-    void setHoveringEnabled(bool enable);
     void onMouseMoved(EventMouse* event);
-    
+
+    void onMouseScrolled(EventMouse* event);
+
+    virtual void mouseEntered();
+    virtual void mouseExited();
+    virtual void mouseScrolled(float x, float y);
+
     /**
      *  When a widget is in a layout, you could call this method to get the next focused widget within a specified direction. 
      *  If the widget is not in a layout, it will return itself
@@ -845,14 +853,14 @@ protected:
     bool _focused;
     bool _focusEnabled;
     
-    bool _hoveringEnabled;
+    bool _mouseEnabled;
     bool _hovering;
     
     /**
      * store the only one focused widget
      */
     static Widget *_focusedWidget;  //both layout & widget will be stored in this variable
-    static Widget *_hoveringWidget;  //both layout & widget will be stored in this variable
+    static Widget* _hoveringWidget;  //both layout & widget will be stored in this variable
 
     Ref*       _touchEventListener;
     

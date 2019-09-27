@@ -197,12 +197,26 @@ Size GLView::getFrameSize() const
 
 void GLView::setFrameSize(float width, float height)
 {
+
+    MOD_BEGIN
+    /*
     _screenSize = Size(width, height);
 
     // Github issue #16003 and #16485
     // only update the designResolution if it wasn't previously set
     if (_designResolutionSize.equals(Size::ZERO))
         _designResolutionSize = _screenSize;
+    */
+    MOD_END
+
+    MOD_BEGIN
+    _designResolutionSize = _screenSize = Size(width, height);
+    auto director = Director::getInstance();
+    if (director->getOpenGLView() != NULL) {
+        director->_winSizeInPoints = getDesignResolutionSize();
+        director->setGLDefaultValues();
+    }
+    MOD_END
 }
 
 Rect GLView::getVisibleRect() const
