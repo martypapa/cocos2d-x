@@ -23,8 +23,14 @@
  * THE SOFTWARE.
  */
 
+<<<<<<< HEAD:cocos/renderer/shaders/positionTextureColor.vert
+const char* positionTextureColor_vert = R"(
+attribute vec4 a_position;
+attribute vec2 a_texCoord;
+=======
 const char* lineColor3D_vert = R"(
 attribute vec3 a_position;
+>>>>>>> upstream/v4:cocos/renderer/shaders/lineColor.vert
 attribute vec4 a_color;
 
 uniform mat4 u_MVPMatrix;
@@ -37,7 +43,11 @@ varying vec4 v_fragmentColor;
 
 void main()
 {
+<<<<<<< HEAD:cocos/renderer/shaders/positionTextureColor.vert
+    gl_Position = u_MVPMatrix * a_position;
+=======
     gl_Position = u_MVPMatrix *  vec4(a_position, 1.0);
+>>>>>>> upstream/v4:cocos/renderer/shaders/lineColor.vert
     v_fragmentColor = a_color;
 }
 )";

@@ -23,7 +23,11 @@
  * THE SOFTWARE.
  */
 
+<<<<<<< HEAD:cocos/renderer/shaders/lineColor.frag
+const char* lineColor3D_frag = R"(
+=======
 const char* positionColor_frag = R"(
+>>>>>>> upstream/v4:cocos/renderer/shaders/positionColor.frag
 #ifdef GL_ES
 precision lowp float;
 #endif
