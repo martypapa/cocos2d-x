@@ -867,6 +867,7 @@ void GLViewImpl::onGLFWWindowPosCallback(GLFWwindow* /*window*/, int /*x*/, int 
 
 void GLViewImpl::onGLFWWindowSizeFunCallback(GLFWwindow* /*window*/, int width, int height)
 {
+    MOD_BEGIN /*
     if (width && height && _resolutionPolicy != ResolutionPolicy::UNKNOWN)
     {
         Size baseDesignSize = _designResolutionSize;
@@ -878,7 +879,7 @@ void GLViewImpl::onGLFWWindowSizeFunCallback(GLFWwindow* /*window*/, int width, 
         setDesignResolutionSize(baseDesignSize.width, baseDesignSize.height, baseResolutionPolicy);
         Director::getInstance()->setViewport();
         Director::getInstance()->getEventDispatcher()->dispatchCustomEvent(GLViewImpl::EVENT_WINDOW_RESIZED, nullptr);
-        
+
         //update metal drawable size.
         int fbWidth, fbHeight;
         glfwGetFramebufferSize(_mainWindow, &fbWidth, &fbHeight);
@@ -887,6 +888,25 @@ void GLViewImpl::onGLFWWindowSizeFunCallback(GLFWwindow* /*window*/, int width, 
         size.height = static_cast<CGFloat>(fbHeight);
         [backend::DeviceMTL::getCAMetalLayer() setDrawableSize:size];
     }
+   */ MOD_END
+
+    MOD_BEGIN
+    if (width && height && _resolutionPolicy != ResolutionPolicy::UNKNOWN)
+    {
+        setFrameSize(width, height);
+        updateDesignResolutionSize();
+        Director::getInstance()->setViewport();
+        Director::getInstance()->getEventDispatcher()->dispatchCustomEvent(GLViewImpl::EVENT_WINDOW_RESIZED, nullptr);
+
+        //update metal drawable size.
+        int fbWidth, fbHeight;
+        glfwGetFramebufferSize(_mainWindow, &fbWidth, &fbHeight);
+        CGSize size;
+        size.width = static_cast<CGFloat>(fbWidth);
+        size.height = static_cast<CGFloat>(fbHeight);
+        [backend::DeviceMTL::getCAMetalLayer() setDrawableSize:size];
+    }
+    MOD_END
 }
 
 void GLViewImpl::onGLFWWindowIconifyCallback(GLFWwindow* /*window*/, int iconified)

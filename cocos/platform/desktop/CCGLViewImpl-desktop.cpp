@@ -202,7 +202,9 @@ GLViewImpl::GLViewImpl(bool initglfw)
 : _captured(false)
 , _supportTouch(false)
 , _isInRetinaMonitor(false)
-, _isRetinaEnabled(false)
+MOD_BEGIN
+, _isRetinaEnabled(true)
+MOD_END
 , _retinaFactor(1)
 , _frameZoomFactor(1.0f)
 , _mainWindow(nullptr)
@@ -902,6 +904,7 @@ void GLViewImpl::onGLFWframebuffersize(GLFWwindow* window, int w, int h)
 
 void GLViewImpl::onGLFWWindowSizeFunCallback(GLFWwindow* /*window*/, int width, int height)
 {
+    MOD_BEGIN /*
     if (width && height && _resolutionPolicy != ResolutionPolicy::UNKNOWN)
     {
         Size baseDesignSize = _designResolutionSize;
@@ -914,6 +917,18 @@ void GLViewImpl::onGLFWWindowSizeFunCallback(GLFWwindow* /*window*/, int width, 
         Director::getInstance()->setViewport();
         Director::getInstance()->getEventDispatcher()->dispatchCustomEvent(GLViewImpl::EVENT_WINDOW_RESIZED, nullptr);
     }
+    */ MOD_END
+
+
+    MOD_BEGIN
+    if (width && height && _resolutionPolicy != ResolutionPolicy::UNKNOWN)
+    {
+        setFrameSize(width, height);
+        updateDesignResolutionSize();
+        Director::getInstance()->setViewport();
+        Director::getInstance()->getEventDispatcher()->dispatchCustomEvent(GLViewImpl::EVENT_WINDOW_RESIZED, nullptr);
+    }
+    MOD_END
 }
 
 void GLViewImpl::onGLFWWindowIconifyCallback(GLFWwindow* /*window*/, int iconified)

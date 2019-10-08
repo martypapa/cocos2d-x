@@ -630,6 +630,10 @@ protected:
     void dispatchEvent(EventType eventType);
 
     void updateScrollBar(const Vec2& outOfBoundary);
+
+    MOD_BEGIN
+    void mouseScrolled(float x, float y) override;
+    MOD_END
 	
     MOD_BEGIN
     void mouseScrolled(float x, float y) override;

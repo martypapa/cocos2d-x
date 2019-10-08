@@ -45,6 +45,11 @@ THE SOFTWARE.
 #include "math/TransformUtils.h"
 
 
+MOD_BEGIN
+#include "entt/entity/registry.hpp"
+#include "entt/entity/entity.hpp"
+MOD_END
+
 #if CC_NODE_RENDER_SUBPIXEL
 #define RENDER_IN_SUBPIXEL
 #else
@@ -187,6 +192,7 @@ Node * Node::create()
 
 Node::~Node()
 {
+    CCLOG("deallocing %s  - ptr: %p", getDescription().data(), this);
     CCLOGINFO( "deallocing Node: %p - tag: %i", this, _tag );
     MOD_BEGIN
     if (node_will_destroy_callback) {
@@ -210,16 +216,16 @@ Node::~Node()
     }
 
     removeAllComponents();
-    
+
     CC_SAFE_DELETE(_componentContainer);
-    
+
     stopAllActions();
     unscheduleAllCallbacks();
     CC_SAFE_RELEASE_NULL(_actionManager);
     CC_SAFE_RELEASE_NULL(_scheduler);
-    
+
     _eventDispatcher->removeEventListenersForTarget(this);
-    
+
 #if CC_NODE_DEBUG_VERIFY_EVENT_LISTENERS && COCOS2D_DEBUG > 0
     _eventDispatcher->debugCheckNodeHasNoEventListenersOnDestruction(this);
 #endif
@@ -229,10 +235,15 @@ Node::~Node()
 
     delete[] _additionalTransform;
     CC_SAFE_RELEASE(_programState);
+
+    MOD_BEGIN
+    node_registry().destroy(_nodeID);
+    MOD_END
 }
 
 bool Node::init()
 {
+    CCLOG("New Node: %i", entt::to_integer(nodeID()));
     return true;
 }
 
@@ -249,7 +260,7 @@ void Node::cleanup()
         ScriptEngineManager::sendNodeEventToLua(this, kNodeOnCleanup);
     }
 #endif // #if CC_ENABLE_SCRIPT_BINDING
-    
+
     // actions
     this->stopAllActions();
     // timers
@@ -257,14 +268,14 @@ void Node::cleanup()
 
     // NOTE: Although it was correct that removing event listeners associated with current node in Node::cleanup.
     // But it broke the compatibility to the versions before v3.16 .
-    // User code may call `node->removeFromParent(true)` which will trigger node's cleanup method, when the node 
-    // is added to scene again, event listeners like EventListenerTouchOneByOne will be lost. 
+    // User code may call `node->removeFromParent(true)` which will trigger node's cleanup method, when the node
+    // is added to scene again, event listeners like EventListenerTouchOneByOne will be lost.
     // In fact, user's code should use `node->removeFromParent(false)` in order not to do a cleanup and just remove node
     // from its parent. For more discussion about why we revert this change is at https://github.com/cocos2d/cocos2d-x/issues/18104.
     // We need to consider more before we want to correct the old and wrong logic code.
     // For now, compatiblity is the most important for our users.
 //    _eventDispatcher->removeEventListenersForTarget(this);
-    
+
     for( const auto &child: _children)
         child->cleanup();
 }
@@ -285,7 +296,7 @@ void Node::setSkewX(float skewX)
 {
     if (_skewX == skewX)
         return;
-    
+
     _skewX = skewX;
     _transformUpdated = _transformDirty = _inverseDirty = true;
 }
@@ -299,7 +310,7 @@ void Node::setSkewY(float skewY)
 {
     if (_skewY == skewY)
         return;
-    
+
     _skewY = skewY;
     _transformUpdated = _transformDirty = _inverseDirty = true;
 }
@@ -308,7 +319,7 @@ void Node::setLocalZOrder(std::int32_t z)
 {
     if (getLocalZOrder() == z)
         return;
-    
+
     _setLocalZOrder(z);
     if (_parent)
     {
@@ -351,10 +362,10 @@ void Node::setRotation(float rotation)
 {
     if (_rotationZ_X == rotation)
         return;
-    
+
     _rotationZ_X = _rotationZ_Y = rotation;
     _transformUpdated = _transformDirty = _inverseDirty = true;
-    
+
     updateRotationQuat();
 }
 
@@ -369,7 +380,7 @@ void Node::setRotation3D(const Vec3& rotation)
         _rotationY == rotation.y &&
         _rotationZ_X == rotation.z)
         return;
-    
+
     _transformUpdated = _transformDirty = _inverseDirty = true;
 
     _rotationX = rotation.x;
@@ -377,7 +388,7 @@ void Node::setRotation3D(const Vec3& rotation)
 
     // rotation Z is decomposed in 2 to simulate Skew for Flash animations
     _rotationZ_Y = _rotationZ_X = rotation.z;
-    
+
     updateRotationQuat();
 }
 
@@ -411,7 +422,7 @@ void Node::updateRotation3D()
     sy = clampf(sy, -1, 1);
     _rotationY = asinf(sy);
     _rotationZ_X = atan2f(2.f * (w * z + x * y), 1.f - 2.f * (y * y + z * z));
-    
+
     _rotationX = CC_RADIANS_TO_DEGREES(_rotationX);
     _rotationY = CC_RADIANS_TO_DEGREES(_rotationY);
     _rotationZ_X = _rotationZ_Y = -CC_RADIANS_TO_DEGREES(_rotationZ_X);
@@ -433,10 +444,10 @@ void Node::setRotationSkewX(float rotationX)
 {
     if (_rotationZ_X == rotationX)
         return;
-    
+
     _rotationZ_X = rotationX;
     _transformUpdated = _transformDirty = _inverseDirty = true;
-    
+
     updateRotationQuat();
 }
 
@@ -449,10 +460,10 @@ void Node::setRotationSkewY(float rotationY)
 {
     if (_rotationZ_Y == rotationY)
         return;
-    
+
     _rotationZ_Y = rotationY;
     _transformUpdated = _transformDirty = _inverseDirty = true;
-    
+
     updateRotationQuat();
 }
 
@@ -468,7 +479,7 @@ void Node::setScale(float scale)
 {
     if (_scaleX == scale && _scaleY == scale && _scaleZ == scale)
         return;
-    
+
     _scaleX = _scaleY = _scaleZ = scale;
     _transformUpdated = _transformDirty = _inverseDirty = true;
 }
@@ -484,7 +495,7 @@ void Node::setScale(float scaleX,float scaleY)
 {
     if (_scaleX == scaleX && _scaleY == scaleY)
         return;
-    
+
     _scaleX = scaleX;
     _scaleY = scaleY;
     _transformUpdated = _transformDirty = _inverseDirty = true;
@@ -495,7 +506,7 @@ void Node::setScaleX(float scaleX)
 {
     if (_scaleX == scaleX)
         return;
-    
+
     _scaleX = scaleX;
     _transformUpdated = _transformDirty = _inverseDirty = true;
 }
@@ -511,7 +522,7 @@ void Node::setScaleZ(float scaleZ)
 {
     if (_scaleZ == scaleZ)
         return;
-    
+
     _scaleZ = scaleZ;
     _transformUpdated = _transformDirty = _inverseDirty = true;
 }
@@ -527,7 +538,7 @@ void Node::setScaleY(float scaleY)
 {
     if (_scaleY == scaleY)
         return;
-    
+
     _scaleY = scaleY;
     _transformUpdated = _transformDirty = _inverseDirty = true;
 }
@@ -555,12 +566,11 @@ void Node::setPosition(float x, float y)
 {
     if (_position.x == x && _position.y == y)
         return;
-    
+
     _position.x = x;
     _position.y = y;
-    
+
     _transformUpdated = _transformDirty = _inverseDirty = true;
-    _usingNormalizedPosition = false;
 }
 
 void Node::setPosition3D(const Vec3& position)
@@ -603,7 +613,7 @@ void Node::setPositionZ(float positionZ)
 {
     if (_positionZ == positionZ)
         return;
-    
+
     _transformUpdated = _transformDirty = _inverseDirty = true;
 
     _positionZ = positionZ;
@@ -626,6 +636,7 @@ void Node::setPositionNormalized(const Vec2& position)
     _normalizedPositionDirty = true;
     _transformUpdated = _transformDirty = _inverseDirty = true;
 }
+
 
 ssize_t Node::getChildrenCount() const
 {
@@ -678,6 +689,10 @@ const Size& Node::getContentSize() const
 
 void Node::setContentSize(const Size & size)
 {
+//    MOD_BEGIN
+//    if (_usingNormalizedSize)
+//        return;
+//    MOD_END
     if (! size.equals(_contentSize))
     {
         _contentSize = size;
@@ -712,7 +727,7 @@ bool Node::isIgnoreAnchorPointForPosition() const
 /// isRelativeAnchorPoint setter
 void Node::setIgnoreAnchorPointForPosition(bool newValue)
 {
-    if (newValue != _ignoreAnchorPointForPosition) 
+    if (newValue != _ignoreAnchorPointForPosition)
     {
         _ignoreAnchorPointForPosition = newValue;
         _transformUpdated = _transformDirty = _inverseDirty = true;
@@ -770,7 +785,7 @@ Scene* Node::getScene() const
 {
     if (!_parent)
         return nullptr;
-    
+
     auto sceneNode = _parent;
     while (sceneNode->_parent)
     {
@@ -809,10 +824,10 @@ Node* Node::getChildByTag(int tag) const
 Node* Node::getChildByName(const std::string& name) const
 {
     CCASSERT(!name.empty(), "Invalid name");
-    
+
     std::hash<std::string> h;
     size_t hash = h(name);
-    
+
     for (const auto& child : _children)
     {
         // Different strings may have the same hash code, but can use it to compare first for speed
@@ -826,9 +841,9 @@ void Node::enumerateChildren(const std::string &name, std::function<bool (Node *
 {
     CCASSERT(!name.empty(), "Invalid name");
     CCASSERT(callback != nullptr, "Invalid callback function");
-    
+
     size_t length = name.length();
-    
+
     size_t subStrStartPos = 0;  // sub string start index
     size_t subStrlength = length; // sub string length
 
@@ -2055,7 +2070,7 @@ void Node::setOpacity(uint8_t opacity)
 
 void Node::updateDisplayedOpacity(uint8_t parentOpacity)
 {
-    _displayedOpacity = _realOpacity * parentOpacity/255.0;
+    _displayedOpacity = _realOpacity * parentOpacity * _maxOpacity / (255.0 * 255.0);
     updateColor();
 
     if (_cascadeOpacityEnabled)
