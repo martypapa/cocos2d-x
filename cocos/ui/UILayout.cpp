@@ -57,6 +57,11 @@ _bgImageTexType(TextureResType::LOCAL),
 _backGroundImageTextureSize(Size::ZERO),
 _backGroundImageColor(Color3B::WHITE),
 _backGroundImageOpacity(255),
+MOD_BEGIN
+_manualBackgroundImage(false),
+_widthFollowsChildren(false),
+_heightFollowsChildren(false),
+MOD_END
 _colorRender(nullptr),
 _gradientRender(nullptr),
 _cColor(Color3B::WHITE),
@@ -604,12 +609,49 @@ bool Layout::isBackGroundImageScale9Enabled()const
     return _backGroundScale9Enabled;
 }
 
+MOD_BEGIN
+void Layout::setBackGroundImage(Scale9Sprite* sprite) {
+    if (!sprite) {
+        return;
+    }
+    _manualBackgroundImage = true;
+    _backGroundScale9Enabled = true;
+    if (_backGroundImage) {
+        removeChild(_backGroundImage);
+    }
+    _backGroundImage = sprite;
+    addProtectedChild(_backGroundImage, BACKGROUNDIMAGE_Z, -1);
+    _backGroundImage->setRenderingType(Scale9Sprite::RenderingType::SLICE);
+    _backGroundImageFileName = sprite->getResourceName();
+    _bgImageTexType = TextureResType::PLIST;
+    _backGroundImageTextureSize = _backGroundImage->getContentSize();
+    _backGroundImage->setPosition(_contentSize.width / 2.0f, _contentSize.height / 2.0f);
+    _backGroundImage->setPreferredSize(_contentSize);
+    updateBackGroundImageRGBA();
+}
+void Layout::setHeightFollowsChildren(bool enable) {
+    if (enable != _heightFollowsChildren) {
+        _heightFollowsChildren = enable;
+        _doLayoutDirty = true;
+    }
+}
+void Layout::setWidthFollowsChildren(bool enable) {
+    if (enable != _widthFollowsChildren) {
+        _widthFollowsChildren = enable;
+        _doLayoutDirty = true;
+    }
+}
+MOD_END
 void Layout::setBackGroundImage(const std::string& fileName,TextureResType texType)
 {
     if (fileName.empty())
     {
         return;
     }
+    MOD_BEGIN
+    _manualBackgroundImage = false;
+    MOD_END
+
     if (_backGroundImage == nullptr)
     {
         addBackGroundImage();
@@ -882,6 +924,11 @@ uint8_t Layout::getBackGroundImageOpacity()const
 
 void Layout::updateBackGroundImageColor()
 {
+    MOD_BEGIN
+    if (_manualBackgroundImage) {
+        return;
+    }
+    MOD_END
     if (_backGroundImage)
     {
         _backGroundImage->setColor(_backGroundImageColor);
@@ -890,6 +937,11 @@ void Layout::updateBackGroundImageColor()
 
 void Layout::updateBackGroundImageOpacity()
 {
+    MOD_BEGIN
+    if (_manualBackgroundImage) {
+        return;
+    }
+    MOD_END
     if (_backGroundImage)
     {
         _backGroundImage->setOpacity(_backGroundImageOpacity);
@@ -898,6 +950,11 @@ void Layout::updateBackGroundImageOpacity()
 
 void Layout::updateBackGroundImageRGBA()
 {
+    MOD_BEGIN
+    if (_manualBackgroundImage) {
+        return;
+    }
+    MOD_END
     if (_backGroundImage)
     {
         _backGroundImage->setColor(_backGroundImageColor);
@@ -990,7 +1047,25 @@ void Layout::doLayout()
     {
         executant->doLayout(this);
     }
-    
+
+    MOD_BEGIN
+    if (_widthFollowsChildren) {
+        float right{0};
+        for (auto child : _children) {
+            right = std::max(child->getContentSize().width + child->getPositionX(), right);
+        }
+        setFloatSizeW(0);
+        setRelSizeW(right);
+    }
+    if (_heightFollowsChildren) {
+        float bottom{0};
+        for (auto child : _children) {
+            bottom = std::max(child->getContentSize().height + child->getPositionY(), bottom);
+        }
+        setFloatSizeH(0);
+        setRelSizeH(bottom);
+    }
+    MOD_END
     _doLayoutDirty = false;
 }
 

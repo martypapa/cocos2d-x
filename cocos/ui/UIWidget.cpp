@@ -27,6 +27,8 @@ THE SOFTWARE.
 #include "ui/UILayout.h"
 #include "ui/UIHelper.h"
 #include "base/CCEventListenerTouch.h"
+#include "base/CCEventMouse.h"
+#include "base/CCEventListenerMouse.h"
 #include "base/CCEventListenerKeyboard.h"
 #include "base/CCDirector.h"
 #include "base/CCEventFocus.h"
@@ -138,7 +140,10 @@ void Widget::FocusNavigationController::removeKeyboardEventListener()
 }
 
 Widget* Widget::_focusedWidget = nullptr;
+Widget* Widget::_hoveringWidget = nullptr;
+
 Widget::FocusNavigationController* Widget::_focusNavigationController = nullptr;
+EventMouse* Widget::_lastMouseMovedEvent = nullptr;
 
 Widget::Widget():
 _usingLayoutComponent(false),
@@ -163,6 +168,10 @@ _flippedY(false),
 _layoutParameterType(LayoutParameter::Type::NONE),
 _focused(false),
 _focusEnabled(true),
+MOD_BEGIN
+_hovering(false),
+_mouseEnabled(false),
+MOD_END
 _touchEventListener(nullptr),
 _ccEventCallback(nullptr),
 _callbackType(""),
@@ -189,6 +198,12 @@ void Widget::cleanupWidget()
         CC_SAFE_DELETE(_focusNavigationController);
         _focusedWidget = nullptr;
     }
+
+    MOD_BEGIN
+    if (_hoveringWidget == this) {
+        _hoveringWidget = nullptr;
+    }
+    MOD_END
 
 }
 
@@ -378,6 +393,10 @@ void Widget::updateSizeAndPosition()
 
 void Widget::updateSizeAndPosition(const cocos2d::Size &parentSize)
 {
+  MOD_BEGIN
+
+    Node::updateSizeAndPosition(parentSize);
+    /*
     switch (_sizeType)
     {
         case SizeType::ABSOLUTE:
@@ -446,6 +465,8 @@ void Widget::updateSizeAndPosition(const cocos2d::Size &parentSize)
             break;
     }
     setPosition(absPos);
+     */
+    MOD_END
 }
 
 void Widget::setSizeType(SizeType type)
@@ -564,6 +585,9 @@ void Widget::updateContentSizeWithTextureSize(const cocos2d::Size &size)
 
 void Widget::setTouchEnabled(bool enable)
 {
+    MOD_BEGIN
+    setMouseEnabled(enable);
+    MOD_END
     if (enable == _touchEnabled)
     {
         return;
@@ -910,7 +934,16 @@ void Widget::cancelUpEvent()
 
     this->release();
 }
+MOD_BEGIN
 
+void Widget::hoverInEvent()
+{
+}
+
+void Widget::hoverOutEvent()
+{
+}
+MOD_END
 void Widget::addTouchEventListener(const ccWidgetTouchCallback& callback)
 {
     this->_touchEventCallback = callback;
@@ -1176,6 +1209,9 @@ void Widget::copyProperties(Widget *widget)
     setVisible(widget->isVisible());
     setBright(widget->isBright());
     setTouchEnabled(widget->isTouchEnabled());
+    MOD_BEGIN
+    setMouseEnabled(widget->isMouseEnabled());
+    MOD_END
     setLocalZOrder(widget->getLocalZOrder());
     setTag(widget->getTag());
     setName(widget->getName());
@@ -1329,6 +1365,106 @@ bool Widget::isFocusEnabled()const
     return _focusEnabled;
 }
 
+MOD_BEGIN
+
+bool Widget::isHovering() const {
+    return _hovering;
+
+}
+void Widget::setHovering(bool hovering) {
+    if (hovering) {
+        _hoveringWidget = this;
+    } else {
+        if (_hoveringWidget == this) {
+            _hoveringWidget = nullptr;
+        }
+    }
+    if (_hovering != hovering) {
+        _hovering = hovering;
+        if (_hovering) {
+            mouseEntered();
+        } else {
+            mouseExited();
+        }
+    }
+}
+bool Widget::isMouseEnabled() const {
+    return _mouseEnabled;
+}
+void Widget::setMouseEnabled(bool enable) {
+    if (enable == _mouseEnabled) {
+        return;
+    }
+    _mouseEnabled = enable;
+    if (_mouseEnabled) {
+        _mouseListener = EventListenerMouse::create();
+        CC_SAFE_RETAIN(_mouseListener);
+        _mouseListener->onMouseMove = CC_CALLBACK_1(Widget::onMouseMoved, this);
+        _mouseListener->onMouseScroll = CC_CALLBACK_1(Widget::onMouseScrolled, this);
+        _eventDispatcher->addEventListenerWithSceneGraphPriority(_mouseListener, this);
+    } else {
+        _eventDispatcher->removeEventListener(_mouseListener);
+        CC_SAFE_RELEASE_NULL(_mouseListener);
+    }
+}
+
+void Widget::onMouseMoved(EventMouse* event) {
+//    if (_lastMouseMovedEvent == event) {
+//        setHovering(false);
+//        return;
+//    }
+//    std::cout <<"Mouse moved: " << event->getLocation().x << ", " << event->getLocation().y << std::endl;
+//    std::cout <<" -         : " << getPosition().x << ", " << event->getLocation().y << std::endl;
+    bool hit = false;
+    if (_mouseEnabled && isVisible() && isEnabled() && isAncestorsEnabled() && isAncestorsVisible(this)) {
+        auto pos = event->getLocationInView();
+        if (hitTest(pos, Camera::getVisitingCamera(), nullptr)) {
+            if (isClippingParentContainsPoint(pos)) {
+                hit = true;
+//                _lastMouseMovedEvent = event;
+            }
+        }
+    }
+    if (hit) {
+        event->stopPropagation();
+        if (_hoveringWidget != this) {
+            if (_hoveringWidget) {
+                _hoveringWidget->setHovering(false);
+            }
+            setHovering(true);
+        }
+    } else {
+        setHovering(false);
+    }
+//    setHovering(hit);
+}
+
+void Widget::onMouseScrolled(EventMouse* event) {
+    bool hit = false;
+    if (_mouseEnabled && isVisible() && isEnabled() && isAncestorsEnabled() && isAncestorsVisible(this)) {
+        auto pos = event->getLocationInView();
+        if (hitTest(pos, Camera::getVisitingCamera(), nullptr)) {
+            if (isClippingParentContainsPoint(pos)) {
+                hit = true;
+            }
+        }
+    }
+    if (hit) {
+        mouseScrolled(event->getScrollX(), event->getScrollY());
+        event->stopPropagation();
+    }
+}
+
+void Widget::mouseEntered() {
+
+}
+void Widget::mouseExited() {
+
+}
+
+void Widget::mouseScrolled(float x, float y) {}
+
+MOD_END
 Widget* Widget::findNextFocusedWidget(FocusDirection direction,  Widget* current)
 {
     if (nullptr == onNextFocusedWidget || nullptr == onNextFocusedWidget(direction) ) {

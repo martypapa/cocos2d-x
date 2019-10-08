@@ -41,7 +41,10 @@ NS_CC_BEGIN
 
 class EventListenerTouchOneByOne;
 class Camera;
-
+MOD_BEGIN
+class EventMouse;
+class EventListenerMouse;
+MOD_END
 namespace ui {
     class LayoutComponent;
 
@@ -630,7 +633,23 @@ public:
      *@param enable pass true/false to enable/disable the focus ability of a widget
      */
     void setFocusEnabled(bool enable);
-    
+
+    MOD_BEGIN
+    void setMouseEnabled(bool enable);
+    bool isMouseEnabled() const;
+
+
+    bool isHovering() const;
+    void setHovering(bool hovering);
+    void onMouseMoved(EventMouse* event);
+
+    void onMouseScrolled(EventMouse* event);
+
+    virtual void mouseEntered();
+    virtual void mouseExited();
+    virtual void mouseScrolled(float x, float y);
+    MOD_END
+
     /**
      *  When a widget is in a layout, you could call this method to get the next focused widget within a specified direction. 
      *  If the widget is not in a layout, it will return itself
@@ -766,13 +785,18 @@ protected:
     //call back function called widget's state changed to dark.
     virtual void onPressStateChangedToDisabled();
 
+
     void pushDownEvent();
     void moveEvent();
 
     virtual void releaseUpEvent();
     virtual void cancelUpEvent();
 
-    
+    MOD_BEGIN
+    virtual void hoverInEvent();
+    virtual void hoverOutEvent();
+    MOD_END
+
     virtual void adaptRenderers(){};
     void updateChildrenDisplayedRGBA();
     
@@ -819,6 +843,9 @@ protected:
     // it's useful in the next touch move/end events
     const Camera *_hittedByCamera;
     EventListenerTouchOneByOne* _touchListener;
+    MOD_BEGIN
+    EventListenerMouse* _mouseListener;
+    MOD_END
     Vec2 _touchBeganPosition;
     Vec2 _touchMovePosition;
     Vec2 _touchEndPosition;
@@ -832,6 +859,13 @@ protected:
 
     bool _focused;
     bool _focusEnabled;
+
+    MOD_BEGIN
+    bool _mouseEnabled;
+    bool _hovering;
+
+    static Widget* _hoveringWidget;  //both layout & widget will be stored in this variable
+    MOD_END
     /**
      * store the only one focused widget
      */
@@ -847,6 +881,9 @@ protected:
 private:
     class FocusNavigationController;
     static FocusNavigationController* _focusNavigationController;
+    MOD_BEGIN
+    static EventMouse* _lastMouseMovedEvent;
+    MOD_END
 };
 }
 

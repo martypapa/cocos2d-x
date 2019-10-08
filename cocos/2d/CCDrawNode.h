@@ -261,7 +261,16 @@ public:
     * @js NA
     */
     void drawPolygon(const Vec2 *verts, int count, const Color4F &fillColor, float borderWidth, const Color4F &borderColor);
-	
+
+
+    MOD_BEGIN
+    /** draw a triangle with 3 colors */
+    void drawTriangle(const Vec2 &p1, const Vec2 &p2, const Vec2 &p3, const Color4F &c1, const Color4F &c2, const Color4F &c3);
+
+    /** draw a quad with gradient */
+    void drawQuad(const Vec2 *verts, const Color4F *colors);
+    MOD_END
+
     /** draw a triangle with color. 
      *
      * @param p1 The triangle vertex point.

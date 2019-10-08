@@ -54,6 +54,19 @@ THE SOFTWARE.
 
 NS_CC_BEGIN
 
+MOD_BEGIN
+
+static std::function<void(Node*)> node_created_callback;
+void set_node_created_callback(const std::function<void(Node*)> &fn) {
+    node_created_callback = fn;
+}
+
+static std::function<void(Node*)> node_will_destroy_callback;
+void set_node_will_destroy_callback(const std::function<void(Node*)>& fn) {
+    node_will_destroy_callback = fn;
+}
+MOD_END
+
 // FIXME:: Yes, nodes might have a sort problem once every 30 days if the game runs at 60 FPS and each frame sprites are reordered.
 std::uint32_t Node::s_globalOrderOfArrival = 0;
 int Node::__attachedNodeCount = 0;
@@ -81,6 +94,25 @@ Node::Node()
 , _additionalTransform(nullptr)
 , _additionalTransformDirty(false)
 , _transformUpdated(true)
+
+MOD_BEGIN
+, _offsetSize(Size::ZERO)
+, _normalizedSize(Size::ZERO)
+, _maxSize(1e9, 1e9)
+, _minSize(Size::ZERO)
+, _normalizedSizeDirty(false)
+, _usingNormalizedSize(false)
+, _maxOpacity(255)
+, _nodeID(-1)
+, _sizeFn(nullptr)
+, _sizeFnDirty(false)
+, _posFn(nullptr)
+, _posFnDirty(false)
+, _anchorFn(nullptr)
+, _anchorFnDirty(false)
+, _onTransformedFn(nullptr)
+MOD_END
+
 // children (lazy allocs)
 // lazy alloc
 , _localZOrder$Arrival(0LL)
@@ -125,12 +157,18 @@ Node::Node()
     _scheduler->retain();
     _eventDispatcher = _director->getEventDispatcher();
     _eventDispatcher->retain();
-    
+
 #if CC_ENABLE_SCRIPT_BINDING
     ScriptEngineProtocol* engine = ScriptEngineManager::getInstance()->getScriptEngine();
     _scriptType = engine != nullptr ? engine->getScriptType() : kScriptTypeNone;
 #endif
     _transform = _inverse = Mat4::IDENTITY;
+    MOD_BEGIN
+
+    if (node_created_callback) {
+        node_created_callback(this);
+    }
+    MOD_END
 }
 
 Node * Node::create()
@@ -150,7 +188,11 @@ Node * Node::create()
 Node::~Node()
 {
     CCLOGINFO( "deallocing Node: %p - tag: %i", this, _tag );
-    
+    MOD_BEGIN
+    if (node_will_destroy_callback) {
+        node_will_destroy_callback(this);
+    }
+    MOD_END
 #if CC_ENABLE_SCRIPT_BINDING
     if (_updateScriptHandler)
     {
@@ -642,6 +684,9 @@ void Node::setContentSize(const Size & size)
 
         _anchorPointInPoints.set(_contentSize.width * _anchorPoint.x, _contentSize.height * _anchorPoint.y);
         _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+        MOD_BEGIN
+        _usingNormalizedSize = false;
+        MOD_END
     }
 }
 
@@ -786,7 +831,7 @@ void Node::enumerateChildren(const std::string &name, std::function<bool (Node *
     
     size_t subStrStartPos = 0;  // sub string start index
     size_t subStrlength = length; // sub string length
-    
+
     // Starts with '//'?
     bool searchRecursively = false;
     if (length > 2 && name[0] == '/' && name[1] == '/')
@@ -795,7 +840,7 @@ void Node::enumerateChildren(const std::string &name, std::function<bool (Node *
         subStrStartPos = 2;
         subStrlength -= 2;
     }
-    
+
     // End with '/..'?
     bool searchFromParent = false;
     if (length > 3 &&
@@ -806,7 +851,7 @@ void Node::enumerateChildren(const std::string &name, std::function<bool (Node *
         searchFromParent = true;
         subStrlength -= 3;
     }
-    
+
     // Remove '//', '/..' if exist
     std::string newName = name.substr(subStrStartPos, subStrlength);
 
@@ -814,8 +859,8 @@ void Node::enumerateChildren(const std::string &name, std::function<bool (Node *
     {
         newName.insert(0, "[[:alnum:]]+/");
     }
-    
-    
+
+
     if (searchRecursively)
     {
         // name is '//xxx'
@@ -831,7 +876,7 @@ void Node::enumerateChildren(const std::string &name, std::function<bool (Node *
 bool Node::doEnumerateRecursive(const Node* node, const std::string &name, std::function<bool (Node *)> callback) const
 {
     bool ret =false;
-    
+
     if (node->doEnumerate(name, callback))
     {
         // search itself
@@ -849,7 +894,7 @@ bool Node::doEnumerateRecursive(const Node* node, const std::string &name, std::
             }
         }
     }
-    
+
     return ret;
 }
 
@@ -865,7 +910,7 @@ bool Node::doEnumerate(std::string name, std::function<bool (Node *)> callback) 
         name.erase(0, pos+1);
         needRecursive = true;
     }
-    
+
     bool ret = false;
     for (const auto& child : getChildren())
     {
@@ -888,7 +933,7 @@ bool Node::doEnumerate(std::string name, std::function<bool (Node *)> callback) 
             }
         }
     }
-    
+
     return ret;
 }
 
@@ -897,7 +942,7 @@ bool Node::doEnumerate(std::string name, std::function<bool (Node *)> callback) 
 * to override this method
 */
 void Node::addChild(Node *child, int localZOrder, int tag)
-{    
+{
     CCASSERT( child != nullptr, "Argument must be non-nil");
     CCASSERT( child->_parent == nullptr, "child already added. It can't be added again");
 
@@ -908,7 +953,7 @@ void Node::addChild(Node* child, int localZOrder, const std::string &name)
 {
     CCASSERT(child != nullptr, "Argument must be non-nil");
     CCASSERT(child->_parent == nullptr, "child already added. It can't be added again");
-    
+
     addChildHelper(child, localZOrder, INVALID_TAG, name, false);
 }
 
@@ -921,26 +966,26 @@ void Node::addChildHelper(Node* child, int localZOrder, int tag, const std::stri
                     parent = parent->getParent() )
                   if ( parent == child )
                       return false;
-              
+
               return true;
           } );
     (void)assertNotSelfChild;
-    
+
     CCASSERT( assertNotSelfChild(),
               "A node cannot be the child of his own children" );
-    
+
     if (_children.empty())
     {
         this->childrenAlloc();
     }
-    
+
     this->insertChild(child, localZOrder);
-    
+
     if (setTag)
         child->setTag(tag);
     else
         child->setName(name);
-    
+
     child->setParent(this);
 
     child->updateOrderOfArrival();
@@ -954,12 +999,12 @@ void Node::addChildHelper(Node* child, int localZOrder, int tag, const std::stri
             child->onEnterTransitionDidFinish();
         }
     }
-    
+
     if (_cascadeColorEnabled)
     {
         updateCascadeColor();
     }
-    
+
     if (_cascadeOpacityEnabled)
     {
         updateCascadeOpacity();
@@ -988,7 +1033,7 @@ void Node::removeFromParentAndCleanup(bool cleanup)
     if (_parent != nullptr)
     {
         _parent->removeChild(this,cleanup);
-    } 
+    }
 }
 
 /* "remove" logic MUST only be on this method
@@ -1027,9 +1072,9 @@ void Node::removeChildByTag(int tag, bool cleanup/* = true */)
 void Node::removeChildByName(const std::string &name, bool cleanup)
 {
     CCASSERT(!name.empty(), "Invalid name");
-    
+
     Node *child = this->getChildByName(name);
-    
+
     if (child == nullptr)
     {
         CCLOG("cocos2d: removeChildByName(name = %s): child not found!", name.c_str());
@@ -1073,7 +1118,7 @@ void Node::removeAllChildrenWithCleanup(bool cleanup)
         // set parent nil at the end
         child->setParent(nullptr);
     }
-    
+
     _children.clear();
 }
 
@@ -1094,7 +1139,7 @@ void Node::detachChild(Node *child, ssize_t childIndex, bool doCleanup)
     {
         child->cleanup();
     }
-    
+
 #if CC_ENABLE_GC_FOR_NATIVE_OBJECTS
     auto sEngine = ScriptEngineManager::getInstance()->getScriptEngine();
     if (sEngine)
@@ -1162,19 +1207,59 @@ void Node::visit()
     visit(renderer, parentTransform, FLAGS_TRANSFORM_DIRTY);
 }
 
+void Node::updateSizeAndPosition(const Size& a) {
+    bool anyFn = _sizeFn || _anchorFn || _posFn;
+    if (anyFn) {
+        if (_sizeFn) {
+            _usingNormalizedSize = false;
+            setContentSize(_sizeFn(a));
+            _sizeFnDirty = false;
+        }
+        if (_posFn) {
+            setPos(_posFn(a));
+            _posFnDirty = false;
+        }
+        if (_anchorFn) {
+            setAnchor(_anchorFn(a));
+            _anchorFnDirty = false;
+        }
+    }
+
+    if (_usingNormalizedSize) {
+        auto& b = _normalizedSize;
+        auto s = Size(a.width * b.width, a.height * b.height) + _offsetSize;
+        setContentSize({
+           clampf(s.width, _minSize.width, _maxSize.width),
+           clampf(s.height, _minSize.height, _maxSize.height),
+       });
+        _usingNormalizedSize = true;
+        _normalizedSizeDirty = false;
+    }
+
+    if (_usingNormalizedPosition) {
+        setPosition(_normalizedPosition.x * a.width + _relPos.x,
+                    _normalizedPosition.y * a.height + _relPos.y);
+        _normalizedPositionDirty = false;
+        _usingNormalizedPosition = true;
+    }
+
+    if (_onTransformedFn) {
+        auto topLeft = Point(_position + _anchorPointInPoints);
+        auto bottomRight = Point(topLeft + _contentSize);
+        _onTransformedFn(topLeft, bottomRight);
+    }
+}
+
 uint32_t Node::processParentFlags(const Mat4& parentTransform, uint32_t parentFlags)
 {
-    if(_usingNormalizedPosition)
-    {
-        CCASSERT(_parent, "setPositionNormalized() doesn't work with orphan nodes");
-        if ((parentFlags & FLAGS_CONTENT_SIZE_DIRTY) || _normalizedPositionDirty)
-        {
-            auto& s = _parent->getContentSize();
-            _position.x = _normalizedPosition.x * s.width;
-            _position.y = _normalizedPosition.y * s.height;
-            _transformUpdated = _transformDirty = _inverseDirty = true;
-            _normalizedPositionDirty = false;
+    if (parentFlags & FLAGS_CONTENT_SIZE_DIRTY) {
+        _transformDirty = true;
+    }
+    if (_transformDirty) {
+        if (!_parent) {
+            return parentFlags;
         }
+        updateSizeAndPosition(_parent->getContentSize());
     }
 
     // Fixes Github issue #16100. Basically when having two cameras, one camera might set as dirty the
@@ -1185,11 +1270,11 @@ uint32_t Node::processParentFlags(const Mat4& parentTransform, uint32_t parentFl
     uint32_t flags = parentFlags;
     flags |= (_transformUpdated ? FLAGS_TRANSFORM_DIRTY : 0);
     flags |= (_contentSizeDirty ? FLAGS_CONTENT_SIZE_DIRTY : 0);
-    
+
 
     if(flags & FLAGS_DIRTY_MASK)
         _modelViewTransform = this->transform(parentTransform);
-    
+
     _transformUpdated = false;
     _contentSizeDirty = false;
 
@@ -1218,7 +1303,7 @@ void Node::visit(Renderer* renderer, const Mat4 &parentTransform, uint32_t paren
     // but it is deprecated and your code should not rely on it
     _director->pushMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
     _director->loadMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW, _modelViewTransform);
-    
+
     bool visibleByCamera = isVisitableByVisitingCamera();
 
     int i = 0;
@@ -1249,7 +1334,7 @@ void Node::visit(Renderer* renderer, const Mat4 &parentTransform, uint32_t paren
     }
 
     _director->popMatrix(MATRIX_STACK_TYPE::MATRIX_STACK_MODELVIEW);
-    
+
     // FIX ME: Why need to set _orderOfArrival to 0??
     // Please refer to https://github.com/cocos2d/cocos2d-x/pull/6920
     // reset for next frame
@@ -1276,7 +1361,7 @@ void Node::onEnter()
             return;
     }
 #endif
-    
+
     if (_onEnterCallback)
         _onEnterCallback();
 
@@ -1284,16 +1369,16 @@ void Node::onEnter()
     {
         _componentContainer->onEnter();
     }
-    
+
     _isTransitionFinished = false;
-    
+
     for( const auto &child: _children)
         child->onEnter();
-    
+
     this->resume();
-    
+
     _running = true;
-    
+
 #if CC_ENABLE_SCRIPT_BINDING
     if (_scriptType == kScriptTypeLua)
     {
@@ -1311,14 +1396,14 @@ void Node::onEnterTransitionDidFinish()
             return;
     }
 #endif
-    
+
     if (_onEnterTransitionDidFinishCallback)
         _onEnterTransitionDidFinishCallback();
 
     _isTransitionFinished = true;
     for( const auto &child: _children)
         child->onEnterTransitionDidFinish();
-    
+
 #if CC_ENABLE_SCRIPT_BINDING
     if (_scriptType == kScriptTypeLua)
     {
@@ -1336,13 +1421,13 @@ void Node::onExitTransitionDidStart()
             return;
     }
 #endif
-    
+
     if (_onExitTransitionDidStartCallback)
         _onExitTransitionDidStartCallback();
-    
+
     for( const auto &child: _children)
         child->onExitTransitionDidStart();
-    
+
 #if CC_ENABLE_SCRIPT_BINDING
     if (_scriptType == kScriptTypeLua)
     {
@@ -1364,22 +1449,22 @@ void Node::onExit()
             return;
     }
 #endif
-    
+
     if (_onExitCallback)
         _onExitCallback();
-    
+
     if (_componentContainer && !_componentContainer->isEmpty())
     {
         _componentContainer->onExit();
     }
-    
+
     this->pause();
-    
+
     _running = false;
-    
+
     for( const auto &child: _children)
         child->onExit();
-    
+
 #if CC_ENABLE_SCRIPT_BINDING
     if (_scriptType == kScriptTypeLua)
     {
@@ -1502,18 +1587,18 @@ void Node::scheduleUpdateWithPriority(int priority)
 void Node::scheduleUpdateWithPriorityLua(int nHandler, int priority)
 {
     unscheduleUpdate();
-    
+
 #if CC_ENABLE_SCRIPT_BINDING
     _updateScriptHandler = nHandler;
 #endif
-    
+
     _scheduler->scheduleUpdate(this, priority, !_running);
 }
 
 void Node::unscheduleUpdate()
 {
     _scheduler->unscheduleUpdate(this);
-    
+
 #if CC_ENABLE_SCRIPT_BINDING
     if (_updateScriptHandler)
     {
@@ -1571,7 +1656,7 @@ void Node::unschedule(SEL_SCHEDULE selector)
     // explicit null handling
     if (selector == nullptr)
         return;
-    
+
     _scheduler->unschedule(selector, this);
 }
 
@@ -1611,7 +1696,7 @@ void Node::update(float fDelta)
         ScriptEngineManager::getInstance()->getScriptEngine()->sendEvent(&event);
     }
 #endif
-    
+
     if (_componentContainer && !_componentContainer->isEmpty())
     {
         _componentContainer->visit(fDelta);
@@ -1658,22 +1743,22 @@ const Mat4& Node::getNodeToParentTransform() const
         float x = _position.x;
         float y = _position.y;
         float z = _positionZ;
-        
+
         if (_ignoreAnchorPointForPosition)
         {
             x += _anchorPointInPoints.x;
             y += _anchorPointInPoints.y;
         }
-        
+
         bool needsSkewMatrix = ( _skewX || _skewY );
 
         // Build Transform Matrix = translation * rotation * scale
         Mat4 translation;
         //move to anchor point first, then rotate
         Mat4::createTranslation(x, y, z, &translation);
-        
+
         Mat4::createRotation(_rotationQuat, &_transform);
-        
+
         if (_rotationZ_X != _rotationZ_Y)
         {
             // Rotation values
@@ -1685,7 +1770,7 @@ const Mat4& Node::getNodeToParentTransform() const
             float sx = sinf(radiansX);
             float cy = cosf(radiansY);
             float sy = sinf(radiansY);
-            
+
             float m0 = _transform.m[0], m1 = _transform.m[1], m4 = _transform.m[4], m5 = _transform.m[5], m8 = _transform.m[8], m9 = _transform.m[9];
             _transform.m[0] = cy * m0 - sx * m1;
             _transform.m[4] = cy * m4 - sx * m5;
@@ -1714,7 +1799,7 @@ const Mat4& Node::getNodeToParentTransform() const
             _transform.m[9] *= _scaleZ;
             _transform.m[10] *= _scaleZ;
         }
-        
+
         // FIXME:: Try to inline skew
         // If skew is needed, apply skew and then anchor point
         if (needsSkewMatrix)
@@ -1727,7 +1812,7 @@ const Mat4& Node::getNodeToParentTransform() const
                 0,  0,  0, 1
             };
             Mat4 skewMatrix(skewMatArray);
-            
+
             _transform = _transform * skewMatrix;
         }
 
@@ -1909,7 +1994,7 @@ Component* Node::getComponent(const std::string& name)
 {
     if (_componentContainer)
         return _componentContainer->get(name);
-    
+
     return nullptr;
 }
 
@@ -1918,10 +2003,10 @@ bool Node::addComponent(Component *component)
     // lazy alloc
     if (!_componentContainer)
         _componentContainer = new (std::nothrow) ComponentContainer(this);
-    
+
     // should enable schedule update, then all components can receive this call back
     scheduleUpdate();
-    
+
     return _componentContainer->add(component);
 }
 
@@ -1929,7 +2014,7 @@ bool Node::removeComponent(const std::string& name)
 {
     if (_componentContainer)
         return _componentContainer->remove(name);
-    
+
     return false;
 }
 
@@ -1939,7 +2024,7 @@ bool Node::removeComponent(Component *component)
     {
         return _componentContainer->remove(component);
     }
-    
+
     return false;
 }
 
@@ -1964,7 +2049,7 @@ uint8_t Node::getDisplayedOpacity() const
 void Node::setOpacity(uint8_t opacity)
 {
     _displayedOpacity = _realOpacity = opacity;
-    
+
     updateCascadeOpacity();
 }
 
@@ -1972,7 +2057,7 @@ void Node::updateDisplayedOpacity(uint8_t parentOpacity)
 {
     _displayedOpacity = _realOpacity * parentOpacity/255.0;
     updateColor();
-    
+
     if (_cascadeOpacityEnabled)
     {
         for(const auto& child : _children)
@@ -1993,9 +2078,9 @@ void Node::setCascadeOpacityEnabled(bool cascadeOpacityEnabled)
     {
         return;
     }
-    
+
     _cascadeOpacityEnabled = cascadeOpacityEnabled;
-    
+
     if (cascadeOpacityEnabled)
     {
         updateCascadeOpacity();
@@ -2009,19 +2094,19 @@ void Node::setCascadeOpacityEnabled(bool cascadeOpacityEnabled)
 void Node::updateCascadeOpacity()
 {
     uint8_t parentOpacity = 255;
-    
+
     if (_parent != nullptr && _parent->isCascadeOpacityEnabled())
     {
-        parentOpacity = _parent->getDisplayedOpacity();
+        parentOpacity = _parent->maxOpacity();
     }
-    
+
     updateDisplayedOpacity(parentOpacity);
 }
 
 void Node::disableCascadeOpacity()
 {
     _displayedOpacity = _realOpacity;
-    
+
     for(const auto& child : _children)
     {
         child->updateDisplayedOpacity(255);
@@ -2049,7 +2134,7 @@ const Color3B& Node::getDisplayedColor() const
 void Node::setColor(const Color3B& color)
 {
     _displayedColor = _realColor = color;
-    
+
     updateCascadeColor();
 }
 
@@ -2059,7 +2144,7 @@ void Node::updateDisplayedColor(const Color3B& parentColor)
     _displayedColor.g = _realColor.g * parentColor.g/255.0;
     _displayedColor.b = _realColor.b * parentColor.b/255.0;
     updateColor();
-    
+
     if (_cascadeColorEnabled)
     {
         for(const auto &child : _children)
@@ -2080,9 +2165,9 @@ void Node::setCascadeColorEnabled(bool cascadeColorEnabled)
     {
         return;
     }
-    
+
     _cascadeColorEnabled = cascadeColorEnabled;
-    
+
     if (_cascadeColorEnabled)
     {
         updateCascadeColor();
@@ -2100,7 +2185,7 @@ void Node::updateCascadeColor()
     {
         parentColor = _parent->getDisplayedColor();
     }
-    
+
     updateDisplayedColor(parentColor);
 }
 
@@ -2118,19 +2203,19 @@ bool isScreenPointInRect(const Vec2 &pt, const Camera* camera, const Mat4& w2l, 
     {
         return false;
     }
-    
+
     // first, convert pt to near/far plane, get Pn and Pf
     Vec3 Pn(pt.x, pt.y, -1), Pf(pt.x, pt.y, 1);
     Pn = camera->unprojectGL(Pn);
     Pf = camera->unprojectGL(Pf);
-    
+
     //  then convert Pn and Pf to node space
     w2l.transformPoint(&Pn);
     w2l.transformPoint(&Pf);
 
     // Pn and Pf define a line Q(t) = D + t * E which D = Pn
     auto E = Pf - Pn;
-    
+
     // second, get three points which define content plane
     //  these points define a plane P(u, w) = A + uB + wC
     Vec3 A = Vec3(rect.origin.x, rect.origin.y, 0);
@@ -2138,7 +2223,7 @@ bool isScreenPointInRect(const Vec2 &pt, const Camera* camera, const Mat4& w2l, 
     Vec3 C(rect.origin.x, rect.origin.y + rect.size.height, 0);
     B = B - A;
     C = C - A;
-    
+
     //  the line Q(t) intercept with plane P(u, w)
     //  calculate the intercept point P = Q(t)
     //      (BxC).A - (BxC).D
@@ -2190,5 +2275,194 @@ backend::ProgramState* Node::getProgramState() const
 {
     return _programState;
 }
+
+
+MOD_BEGIN
+/// position getter
+const Vec2& Node::relPos() const
+{
+    return _relPos;
+}
+
+
+/// position setter
+void Node::setRelPos(const Vec2& position)
+{
+    if (_usingNormalizedPosition && _relPos.equals(position))
+        return;
+
+    _relPos = position;
+    _normalizedPositionDirty = _transformUpdated = _transformDirty = _inverseDirty = true;
+    _usingNormalizedPosition = true;
+}
+
+void Node::setRelPosX(float x) {
+    setRelPos({x, _relPos.y});
+
+}
+void Node::setRelPosY(float y) {
+    setRelPos({_relPos.x, y});
+
+}
+
+
+void Node::setPos(const FullPoint& position) {
+    setRelPos({position.x.absolute, position.y.absolute});
+    setFloatPos({position.x.fraction.value, position.y.fraction.value});
+}
+void Node::setPosX(const FullValue& x) {
+    setRelPosX(x.absolute);
+    setFloatPosX(x.fraction.value);
+
+}
+void Node::setPosY(const FullValue& y) {
+    setRelPosY(y.absolute);
+    setFloatPosY(y.fraction.value);
+}
+
+
+void Node::disablePositionNormalized() {
+    _usingNormalizedPosition = false;
+    _normalizedPositionDirty = true;
+    _transformUpdated = _transformDirty = _inverseDirty = true;
+}
+
+void Node::setAnchor(const Vec2& anchor) {
+    return setAnchorPoint(anchor);
+}
+void Node::setAnchorX(float x) {
+    setAnchorPoint({x, _anchorPoint.y});
+}
+void Node::setAnchorY(float y) {
+    setAnchorPoint({_anchorPoint.x, y});
+}
+
+void Node::setContentSizeW(float w) {
+    setContentSize({w, _contentSize.height});
+}
+void Node::setContentSizeH(float h) {
+    setContentSize({_contentSize.width, h});
+}
+
+
+void Node::setFloatSize(const Size& size) {
+    if (_usingNormalizedSize && size.equals(_normalizedSize))
+        return;
+    _normalizedSize = size;
+    _normalizedSizeDirty = _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+    _usingNormalizedSize = true;
+}
+
+void Node::setFloatSizeW(float w) {
+    setFloatSize({w, _normalizedSize.height});
+}
+void Node::setFloatSizeH(float h) {
+    setFloatSize({_normalizedSize.width, h});
+}
+
+const Size& Node::floatSize() const {
+    return _normalizedSize;
+}
+
+void Node::setRelSize(const Size& size) {
+    if (_usingNormalizedSize && size.equals(_offsetSize))
+        return;
+    _offsetSize = size;
+    _normalizedSizeDirty = _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+    _usingNormalizedSize = true;
+}
+
+void Node::setRelSizeW(float w) {
+    setRelSize({w, _offsetSize.height});
+}
+void Node::setRelSizeH(float h) {
+    setRelSize({_offsetSize.width, h});
+}
+
+void Node::setMaxSize(const Size& size) {
+    if (size.equals(_offsetSize))
+        return;
+    _maxSize = size;
+    _normalizedSizeDirty = _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+}
+void Node::setMaxSizeW(float w) { setMaxSize({w, _maxSize.height}); }
+void Node::setMaxSizeH(float h) { setMaxSize({_maxSize.width, h}); }
+
+void Node::setMinSize(const Size& size) {
+    if (size.equals(_offsetSize))
+        return;
+    _minSize = size;
+    _normalizedSizeDirty = _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+}
+void Node::setMinSizeW(float w) { setMinSize({w, _minSize.height}); }
+void Node::setMinSizeH(float h) { setMinSize({_minSize.width, h}); }
+
+
+const Size& Node::relSize() const {
+    return _offsetSize;
+}
+
+void Node::setSize(const FullSize& position) {
+    setRelSize({position.width.absolute, position.height.absolute});
+    setFloatSize({position.width.fraction.value, position.height.fraction.value});
+}
+
+void Node::setSizeW(const FullValue& w) {
+    setRelSizeW(w.absolute);
+    setFloatSizeW(w.fraction.value);
+
+}
+void Node::setSizeH(const FullValue& h) {
+    setRelSizeH(h.absolute);
+    setFloatSizeH(h.fraction.value);
+}
+
+void Node::setSizeFn(const SizeFn& getSize) {
+    _sizeFn = getSize;
+    updateSizeFn();
+}
+void Node::updateSizeFn() {
+    _sizeFnDirty = _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+}
+void Node::setPosFn(const PosFn& getPos) {
+    _posFn = getPos;
+    updatePosFn();
+}
+void Node::updatePosFn() {
+    _posFnDirty = _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+}
+void Node::setAnchorFn(const AnchorFn& getAnchor) {
+    _anchorFn = getAnchor;
+    updateAnchorFn();
+}
+void Node::updateAnchorFn() {
+    _anchorFnDirty = _transformUpdated = _transformDirty = _inverseDirty = _contentSizeDirty = true;
+}
+
+void Node::setOnTransformedFn(const OnTransformedFn& onTransformed){
+    _onTransformedFn = onTransformed;
+    updateTransformedFn();
+}
+void Node::updateTransformedFn() {
+}
+
+
+uint8_t Node::maxOpacity() const {
+    return _maxOpacity;
+}
+void Node::setMaxOpacity(uint8_t maxOpacity) {
+    _maxOpacity = maxOpacity;
+    _displayedOpacity = _realOpacity;
+    updateCascadeOpacity();
+}
+
+std::uint32_t Node::nodeID() const {
+    return _nodeID;
+}
+void Node::setNodeID(std::uint32_t id) {
+    _nodeID = id;
+}
+
+MOD_END
 
 NS_CC_END

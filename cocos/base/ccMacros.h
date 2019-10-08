@@ -36,6 +36,9 @@ THE SOFTWARE.
 #include "base/CCConsole.h"
 #include "platform/CCStdC.h"
 
+#define MOD_BEGIN
+#define MOD_END
+
 #ifndef CCASSERT
 #if COCOS2D_DEBUG > 0
     #if CC_ENABLE_SCRIPT_BINDING

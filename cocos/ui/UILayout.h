@@ -169,7 +169,25 @@ public:
      * @param texType @see TextureResType. 
      */
     void setBackGroundImage(const std::string& fileName,TextureResType texType = TextureResType::LOCAL);
-    
+
+    MOD_BEGIN
+    /**
+     * Sets a manual background image
+     * If this is set, the background image can only be modified using backGroundImage()
+     * @param sprite sprite
+     */
+    void setBackGroundImage(Scale9Sprite* sprite);
+
+    /**
+     * Query the background image. Should only be used in conjunction with setBackGroundImage().
+     * @return the background image pointer
+     */
+    Scale9Sprite* backGroundImage() { return _backGroundImage; }
+
+    void setHeightFollowsChildren(bool enable);
+    void setWidthFollowsChildren(bool enable);
+    MOD_END
+
     /**
      * Sets a background image capinsets for layout, it only affects the scale9 enabled background image
      *
@@ -609,6 +627,12 @@ protected:
     Size _backGroundImageTextureSize;
     Color3B _backGroundImageColor;
     uint8_t _backGroundImageOpacity;
+
+    MOD_BEGIN
+    bool _manualBackgroundImage;
+    bool _widthFollowsChildren;
+    bool _heightFollowsChildren;
+    MOD_END
 
     LayerColor* _colorRender;
     LayerGradient* _gradientRender;

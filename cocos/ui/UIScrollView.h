@@ -631,6 +631,10 @@ protected:
 
     void updateScrollBar(const Vec2& outOfBoundary);
 	
+    MOD_BEGIN
+    void mouseScrolled(float x, float y) override;
+    MOD_END
+
 protected:
     virtual float getAutoScrollStopEpsilon() const;
     bool fltEqualZero(const Vec2& point) const;
