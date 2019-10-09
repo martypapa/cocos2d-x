@@ -39,9 +39,6 @@
 #include "base/ccMacros.h"
 #include "math/CCAffineTransform.h"
 #include "math/CCMath.h"
-MOD_BEGIN
-#include "entt/entity/fwd.hpp"
-MOD_END
 
 #if CC_USE_PHYSICS
 #include "physics/CCPhysicsBody.h"
@@ -172,37 +169,6 @@ instead. Or subclass Node and override `draw`.
 
  */
 
-MOD_BEGIN
-struct Pct {
-    explicit Pct(float percent) : value(percent) {}
-    float value;
-};
-struct FullValue {
-    float relative;
-    Pct percent;
-    FullValue(float relative, Pct pct) : relative(relative), percent(pct) {}
-};
-
-inline FullValue operator+(float rel, Pct pct) { return {rel, pct}; }
-inline FullValue operator+(Pct pct, float rel) { return {rel, pct}; }
-
-struct FullPoint {
-    FullValue x;
-    FullValue y;
-};
-
-struct FullSize {
-    FullValue width;
-    FullValue height;
-    operator FullPoint() { return {width, height}; }
-};
-
-/** Node registry for storing dynamic fields */
-using NodeRegistry = entt::registry;
-NodeRegistry& node_registry();
-using NodeID = entt::entity;
-
-MOD_END
 
 class CC_DLL Node : public Ref {
 public:
@@ -2089,20 +2055,6 @@ protected:
                              ///< frame
 
     MOD_BEGIN
-    Vec2 _relPos;  ///< shifted position of the node in normalized mode
-
-    Size _normalizedSize;
-    Size _offsetSize;
-    Size _maxSize;
-    Size _minSize;
-    bool _normalizedSizeDirty;  ///< whether or not the normalizedSize is dirty
-    bool _usingNormalizedSize;
-    // Opacity is scaled proportionally between 0 and this value.
-    uint8_t _maxOpacity;
-    MOD_END
-
-
-    MOD_BEGIN
     SizeFn _sizeFn;
     PosFn _posFn;
     AnchorFn _anchorFn;
@@ -2157,11 +2109,6 @@ protected:
     Ref *_userObject;               ///< A user assigned Object
 
     Scheduler *_scheduler;          ///< scheduler used to schedule timers and updates
-
-    void* _userData;  ///< A user assigned void pointer, Can be point to any cpp object
-    Ref* _userObject;  ///< A user assigned Object
-
-    Scheduler* _scheduler;  ///< scheduler used to schedule timers and updates
 
     ActionManager* _actionManager;  ///< a pointer to ActionManager singleton, which is used to
                                     ///< handle all the actions

@@ -44,12 +44,6 @@ THE SOFTWARE.
 #include "renderer/CCMaterial.h"
 #include "math/TransformUtils.h"
 
-
-MOD_BEGIN
-#include "entt/entity/registry.hpp"
-#include "entt/entity/entity.hpp"
-MOD_END
-
 #if CC_NODE_RENDER_SUBPIXEL
 #define RENDER_IN_SUBPIXEL
 #else
@@ -235,15 +229,10 @@ Node::~Node()
 
     delete[] _additionalTransform;
     CC_SAFE_RELEASE(_programState);
-
-    MOD_BEGIN
-    node_registry().destroy(_nodeID);
-    MOD_END
 }
 
 bool Node::init()
 {
-    CCLOG("New Node: %i", entt::to_integer(nodeID()));
     return true;
 }
 
